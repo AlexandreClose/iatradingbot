@@ -1,0 +1,5 @@
+git clone https://github.com/federico123579/XTBApi.git
+cd XTBApi/
+# python3 -m venv env //if virtual env
+# . env/bin/activate // if virtual env
+pip install .
