@@ -20,6 +20,15 @@ class apilib:
 	async def getAllSymbols(self,ws):
 		command='{"command": "getAllSymbols"}'
 		return await self.sendAndReceive(command,ws)
+			
+	async def getCalendar(self,ws):
+		command='{"command": "getCalendar"}'
+		return await self.sendAndReceive(command,ws)
+
+	async def getCandles(self,ws,session_id,symbol):
+		command='{"command": "getCandles", "streamSessionId": "' + session_id +'", "symbol": "' + symbol +'"}'
+		return await self.sendAndReceive(command,ws)
+
 
 	def connectionClosed(self, ws):
 		ws.close()
