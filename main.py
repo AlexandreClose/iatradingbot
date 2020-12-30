@@ -1,14 +1,16 @@
-from apilib import *
+from apilib import xtbClient
 import asyncio
-import websocket
+
+async def main_process():
+    client=xtbClient()
+    res1 = await client.login("11671830","Azerty123")
+    res2 = await client.getAllSymbols()
+    print( res1 )
+    print ( res2 )
 
 def main():
-    lib=apilib()
-    result =asyncio.get_event_loop().run_until_complete(lib.connection("11671830","Azerty123"))
-    print (result)
-    result=asyncio.get_event_loop().run_until_complete(lib.getCalendar(result[0]))
-    print(result)
-    lib.connectionClosed(result[0])
+    asyncio.get_event_loop().run_until_complete( main_process( ) )
+
 if __name__ == "__main__":
     main()
 
