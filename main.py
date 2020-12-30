@@ -1,8 +1,11 @@
 from apilib import *
 import asyncio
+import websockets
 
 def main():
-    asyncio.get_event_loop().run_until_complete(apilib.connection("11671830","Azerty123"))
+    lib=apilib()
+    result = asyncio.get_event_loop().run_until_complete(lib.connection("11671830","Azerty123"))
+    print (result)
 
 
 if __name__ == "__main__":
