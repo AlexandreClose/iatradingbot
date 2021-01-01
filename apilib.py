@@ -1,43 +1,73 @@
 import websockets
+import json
 
 
 class xtbClient:
+	def __init__(self):
+		self.stream_session_id=None
+		self.uri="wss://ws.xtb.com/demo"
+		self.uri_stream= "wss://ws.xtb.com/demoStream"
+		self.ws=None
+		self.ws_stream=None
 
-    def __init__(self):
-        self.uri = "wss://ws.xtb.com/demo"
-        self.ws = None
+	async def login(self, user, password):
+		command = {"command" : "login","arguments": {"userId": user ,"password": password}}
+		response = await self.send_and_receive(command)
+		self.stream_session_id = response['streamSessionId']
+		return response
 
-    async def login(self, user, password):
-        command = '{"command" : "login","arguments": {"userId": "' + user + '","password": "' + password + '"}}'
-        return await self.sendAndReceive(command)
+	async def getAllSymbols(self):
+		command = {"command": "getAllSymbols"}
+		return await self.send_and_receive(command)
 
-    async def getAllSymbols(self):
-        command = '{"command": "getAllSymbols"}'
-        return await self.sendAndReceive(command)
+	async def getCalendar(self ):
+		command = {"command": "getCalendar"}
+		return await self.send_and_receive(command)
 
-    async def getCalendar(self, ws):
-        command = '{"command": "getCalendar"}'
-        return await self.sendAndReceive(command)
+	async def getCandles(self, session_id, symbol):
+		command = {"command": "getCandles", "streamSessionId": session_id, "symbol": symbol}
+		return await self.send_and_receive(command)
 
-    async def getCandles(self, ws, session_id, symbol):
-        command = '{"command": "getCandles", "streamSessionId": "' + session_id + '", "symbol": "' + symbol + '"}'
-        return await self.sendAndReceive(command)
+	async def getNews(self ):
+		await self.open_websocket_stream()
+		command = {"command": "getNews","streamSessionId": self.stream_session_id}
+		return await self.send_and_receive_stream(command)
 
-    def connectionClosed(self, ws):
-        ws.close()
+	def connectionClosed(self, ws):
+		ws.close()
 
-    async def open_socket(self):
-        self.ws = await websockets.connect(self.uri, max_size=1_000_000_000)
+	async def open_websocket(self):
+			self.ws = await websockets.connect(self.uri, max_size=1_000_000_000)
 
-    ###envoie et recvoie les requêtes au serveur xtb
-    # retourne la websocket ouverte + la réponse du serveur
-    async def sendAndReceive(self, command):
-        if self.ws is None:
-            await self.open_socket()
-        try:
-            await self.ws.send(command)
-            return await self.ws.recv()
-        except Exception:
-            self.open_socket()
-            await self.ws.send(command)
-            return await self.ws.recv()
+	async def open_websocket_stream(self):
+		self.ws_stream = await websockets.connect(self.uri_stream, max_size=1_000_000_000)
+
+		###envoie et recvoie les requêtes au serveur xtb
+		# retourne la websocket ouverte + la réponse du serveur
+	async def send_and_receive(self, json_command):
+		command = json.dumps(json_command)
+		if self.ws is None:
+			await self.open_websocket()
+		try:
+			await self.ws.send(command)
+			response =  await self.ws.recv()
+			return json.loads( response )
+		except	Exception:
+			self.open_socket()
+			await self.ws.send(command)
+			response = await self.ws.recv()
+			return json.loads( response )
+
+	async def send_and_receive_stream(self, json_command):
+		command = json.dumps(json_command)
+		if self.ws_stream is None:
+			await self.open_websocket_stream()
+		try:
+			await self.ws_stream.send(command)
+			response =  await self.ws_stream.recv()
+			return json.loads( response )
+		except	Exception:
+			self.open_websocket_stream()
+			await self.ws_stream.send(command)
+			response = await self.ws_stream.recv()
+			return json.loads( response )
