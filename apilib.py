@@ -24,14 +24,45 @@ class xtbClient:
 		command = {"command": "getCalendar"}
 		return await self.send_and_receive(command)
 
-	async def getCandles(self, session_id, symbol):
-		command = {"command": "getCandles", "streamSessionId": session_id, "symbol": symbol}
+	async def getStreamingCandles(self, symbol):
+		command = {"command": "getCandles", "streamSessionId": self.stream_session_id, "symbol": symbol}
 		return await self.send_and_receive(command)
 
-	async def getNews(self ):
+	async def getStreamingNews(self ):
 		await self.open_websocket_stream()
 		command = {"command": "getNews","streamSessionId": self.stream_session_id}
 		return await self.send_and_receive_stream(command)
+
+	async def getStreamingTradeStatusStart(self):
+		command={"command": "getTradeStatus","streamSessionId": self.stream_session_id}
+		return await self.send_and_receive_stream(command)
+
+	async def getStreamingTradeStatusStop(self):
+		command={"command": "stopTradeStatus"}
+		return await self.send_and_receive_stream(command)
+
+	async def getStreamingTradesStart(self):
+		command = {"command": "getTrades","streamSessionId": self.stream_session_id}
+		return await self.send_and_receive_stream(command)
+
+	async def getStreamingTradesStart(self):
+		command = {"command": "getTrades","streamSessionId": self.stream_session_id}
+		return await self.send_and_receive_stream(command)
+	
+	async def getStreamingTradesStop(self):
+		command = {"command": "stopTrades"}
+		return await self.send_and_receive_stream(command)
+
+
+	async def getStreamingTrades(self, data):
+		command = {"command": "trade", "data": data}
+		return await self.send_and_receive_stream(command)
+	
+	async def streamingPing(self, session_id):
+		command = {"command": "ping","streamSessionId": self.stream_session_id}
+		return await self.send_and_receive_stream(command)
+
+
 
 	def connectionClosed(self, ws):
 		ws.close()
