@@ -1,6 +1,6 @@
 import websockets
 import json
-
+from logging_conf import log
 
 class xtbClient:
 	def __init__(self):
@@ -16,13 +16,18 @@ class xtbClient:
 		self.candles=[]
 		self.keep_alives=[]
 		self.trades=[]
+		self.ws_stream_tick_prices_dict = dict() # key : 'BITCOIN' => value : websocket stream tick prices BITCOIN (...)
+		self.tick_prices_dict = dict() # key : 'BITCOIN' => value : tick prices BITCOIN (...)
 
 
 	async def login(self, user, password):
 		command = {"command" : "login","arguments": {"userId": user ,"password": password}}
 		response = await self.send_and_receive(command)
+		assert response['status']==True
 		self.stream_session_id = response['streamSessionId']
-		return response
+		log.info( "[LOGIN] : Success. Session open on XTB with stream session id %s", self.stream_session_id )
+		log.debug( response )
+
 
 	async def get_all_symbols(self):
 		command = {"command": "getAllSymbols"}
@@ -37,13 +42,25 @@ class xtbClient:
 		command = {"command": "getCandles", "streamSessionId": self.stream_session_id, "symbol": symbol}
 		return await self.send_and_receive_stream( command, self.ws_stream_candles, self.candles)
 
-	async def get_keep_alive(self ):
+	async def get_keep_alive( self ):
 		self.ws_stream_keep_alive = await self.open_websocket_stream()
 		command = {
 			"command": "getKeepAlive",
 			"streamSessionId": self.stream_session_id
 		}
 		return await self.send_and_receive_stream( command, self.ws_stream_keep_alive, self.keep_alives)
+
+	async def get_tick_prices ( self, symbol, min_arrival_time = 5000, max_level = 2 ):
+		self.ws_stream_tick_prices_dict[symbol] = await self.open_websocket_stream()
+		command = {
+			"command": "getTickPrices",
+			"streamSessionId": self.stream_session_id,
+			"symbol": symbol,
+			"minArrivalTime": min_arrival_time,
+			"maxLevel": max_level
+		}
+		self.tick_prices_dict[symbol] = [] # init empty tick prices infos array in memory for this symbol
+		await self.send_and_receive_stream( command, self.ws_stream_tick_prices_dict[symbol], self.tick_prices_dict[symbol])
 
 	async def get_news(self ):
 		self.ws_stream_news = await self.open_websocket_stream()
@@ -99,6 +116,7 @@ class xtbClient:
 		# retourne la websocket ouverte + la réponse du serveur
 	async def send_and_receive(self, json_command):
 		command = json.dumps(json_command)
+		log.info( "[COMMAND] : " + command )
 		if self.ws is None:
 			await self.open_websocket()
 		try:
@@ -113,10 +131,10 @@ class xtbClient:
 
 	async def send_and_receive_stream(self, json_command, websocket, resp_array):
 		command = json.dumps(json_command)
-		print(command)
+		log.info( "[COMMAND] : %s", command )
 		await websocket.send(command)
 		while True:
 			response = await websocket.recv()
-			print (response)
+			log.debug( response )
 			resp_array.append( json.loads( response ))
 
