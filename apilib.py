@@ -1,6 +1,25 @@
+import enum
 import websockets
 import json
 from logging_conf import log
+
+class MODES(enum.Enum):
+	BUY = 0
+	SELL = 1
+	BUY_LIMIT = 2
+	SELL_LIMIT = 3
+	BUY_STOP = 4
+	SELL_STOP = 5
+	BALANCE = 6
+	CREDIT = 7
+
+class TRANS_TYPES(enum.Enum):
+	OPEN = 0
+	PENDING = 1
+	CLOSE = 2
+	MODIFY = 3
+	DELETE = 4
+
 
 class xtbClient:
 	def __init__(self):
@@ -71,6 +90,50 @@ class xtbClient:
 		self.ws_stream_trades = await self.open_websocket_stream()
 		command = { "command": "getTrades","streamSessionId": self.stream_session_id}
 		return await self.send_and_receive_stream( command, self.ws_stream_trades, self.trades)
+
+	async def trade_transaction(self, mode, trans_type, symbol, volume, stop_loss = 0, take_profit = 0, **opt_args  ):
+
+		#some controls
+		accepted_values = ['order', 'price', 'expiration', 'customComment',
+						   'offset']
+		assert all([val in accepted_values for val in opt_args.keys()])
+		stop_loss = float(stop_loss)
+		take_profit = float(take_profit)
+		print(volume)
+		self._check_volume( volume )
+
+		#Basic infos for opening trade
+		infos = {
+			"cmd": mode.value,
+			"sl": stop_loss,
+			"symbol": symbol,
+			"tp": take_profit,
+			"type": trans_type.value,
+			"volume": volume
+		}
+
+		#Optional infos for opening trade
+		infos.update( opt_args )
+
+		command = {
+			"command": "tradeTransaction",
+			"arguments": {
+				"tradeTransInfo": infos
+			}
+		}
+
+		return await self.send_and_receive( command )
+
+	def _check_volume(self, volume):
+		if not isinstance(volume, float):
+			try:
+				return float(volume)
+			except Exception:
+				raise ValueError("vol must be float")
+		else:
+			return volume
+
+
 
 	async def getStreamingTradeStatusStart(self):
 		command={"command": "getTradeStatus","streamSessionId": self.stream_session_id}
