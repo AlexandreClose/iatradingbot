@@ -2,6 +2,7 @@ import enum
 import websockets
 import json
 from logging_conf import log
+import time
 
 class MODES(enum.Enum):
 	BUY = 0
@@ -20,6 +21,16 @@ class TRANS_TYPES(enum.Enum):
 	MODIFY = 3
 	DELETE = 4
 
+class TIME_TYPE(enum.Enum):
+	PERIOD_M1 = 1
+	PERIOD_M5 = 5
+	PERIOD_M15 = 15
+	PERIOD_M30 = 30
+	PERIOD_H1 = 60
+	PERIOD_H4 = 240
+	PERIOD_D1 = 1440
+	PERIOD_W1 = 10080
+	PERIOD_MN1 = 43200
 
 class xtbClient:
 	def __init__(self):
@@ -164,6 +175,10 @@ class xtbClient:
 		command = {"command": "ping","streamSessionId": self.stream_session_id}
 		return await self.send_and_receive_stream(command)
 
+	async def get_history_chart(self,timestart,timeend,period,symbol):
+		chartinfo={"end": timeend,"period": period,"start": timestart,"symbol": symbol,"ticks": 0}
+		command = {"command": "getChartRangeRequest","arguments": {"info": {"end": timeend,"period": period.value,"start": timestart,"symbol": symbol,"ticks": 0}}}
+		return await self.send_and_receive(command)
 
 
 	def connectionClosed(self, ws):
@@ -185,11 +200,13 @@ class xtbClient:
 		try:
 			await self.ws.send(command)
 			response =  await self.ws.recv()
+			log.debug(response)
 			return json.loads( response )
 		except	Exception:
 			self.open_socket()
 			await self.ws.send(command)
 			response = await self.ws.recv()
+			log.debug(response)
 			return json.loads( response )
 
 	async def send_and_receive_stream(self, json_command, websocket, resp_array):
