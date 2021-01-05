@@ -2,7 +2,6 @@ import enum
 import websockets
 import json
 from logging_conf import log
-import time
 
 class MODES(enum.Enum):
 	BUY = 0
