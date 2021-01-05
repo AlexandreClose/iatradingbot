@@ -107,7 +107,7 @@ class xtbClient:
 			"maxLevel": max_level
 		}
 		self.tick_prices_dict[symbol] = [] # init empty tick prices infos array in memory for this symbol
-		await self.send_and_receive_stream( command, self.ws_stream_tick_prices_dict[symbol], self.tick_prices_dict[symbol])
+		asyncio.create_task( self.send_and_receive_stream( command, self.ws_stream_tick_prices_dict[symbol], self.tick_prices_dict[symbol]) )
 
 	async def get_news(self ):
 		command = {"command": "getNews","streamSessionId": self.stream_session_id}

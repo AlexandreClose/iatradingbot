@@ -8,15 +8,13 @@ import datetime
 async def mainProgram( ):
     client=xtbClient()
     await client.login("11676157","TestTest123123")
-    #loop.create_task(client.get_tick_prices( "DASH", min_arrival_time= 2000 )) # Performs async call
-    # Open stream for BITCOIN crypto infos
-    #loop.create_task(client.get_tick_prices( "BITCOIN", min_arrival_time= 2000 )) # Performs async call
-    # Open stream for BITCOIN crypto infos
-    await client.trade_transaction( MODES.BUY, TRANS_TYPES.OPEN, 'DASH', 1,0,0, customComment="titi")
+    await client.get_tick_prices( "DASH", min_arrival_time= 2000 )
+    await client.get_tick_prices( "BITCOIN", min_arrival_time= 2000 )  # Performs async call
+    await client.trade_transaction( MODES.BUY, TRANS_TYPES.OPEN, 'DASH', 1,0,0, customComment="trade1")
     time.sleep(0.200)
-    await client.trade_transaction( MODES.BUY, TRANS_TYPES.OPEN, 'DASH', 1,0,0, customComment="titi")
+    await client.trade_transaction( MODES.BUY, TRANS_TYPES.OPEN, 'DASH', 1,0,0, customComment="trade2")
     time.sleep(0.200)
-    await client.trade_transaction( MODES.BUY, TRANS_TYPES.OPEN, 'DASH', 1,0,0, customComment="titi")
+    await client.trade_transaction( MODES.BUY, TRANS_TYPES.OPEN, 'DASH', 1,0,0, customComment="trade3")
     time.sleep(0.200)
 
     dt_start = datetime.datetime(2021, 1, 4 ,5,22,00)
