@@ -1,12 +1,7 @@
-import time
-
-import pymongo as pymongo
-
-from logging_conf import log
-from apilib import *
+from xtbapi.apilib import *
 import asyncio
 import datetime
-from analyzer.mongodb_connector import mongodb_connector
+
 
 async def mainProgram( ):
     client=xtbClient()
@@ -27,9 +22,10 @@ async def mainProgram( ):
     await asyncio.sleep( 0.2)
     order_id = await client.open_trade( 'DASH', 1,0,0)
     await asyncio.sleep( 0.2)
-    log.info('[ TRADES ] : %s', await client.get_all_updated_trades() )
 
-    await client.close_all_trades( )
+    log.info('[TRADES DASH] : %s', await client.get_all_updated_trades( symbol='DASH') )
+
+    #await client.close_all_trades( )
 
     # follow all the tick prices of given array of symbols
     #await client.follow_tick_prices( ['BITCOIN','DASH'])
@@ -61,7 +57,6 @@ async def mainProgram( ):
 
 
 def main():
-
     # Use asyncio to run sync and async functions
     loop = asyncio.get_event_loop()
     # Performs login

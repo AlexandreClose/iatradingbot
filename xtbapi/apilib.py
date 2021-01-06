@@ -95,8 +95,18 @@ class xtbClient:
 		asyncio.run_coroutine_threadsafe( self._get_news(), loop)
 
 
-	async def get_all_updated_trades(self ):
-		return self.trades
+	async def get_all_updated_trades(self, **opt_args_filter ):
+		trades = self.trades
+		if opt_args_filter is not None:
+			if 'profit' in opt_args_filter:
+				profit = opt_args_filter['profit']
+				if profit is not None:
+					trades = [x for x in trades.values() if x['profit'] == profit]
+			if 'symbol' in opt_args_filter:
+				symbol = opt_args_filter['symbol']
+				if symbol is not None:
+					trades = [x for x in trades.values() if x['symbol'] == symbol]
+		return trades
 
 	async def get_symbol(self, symbol):
 		command = {
