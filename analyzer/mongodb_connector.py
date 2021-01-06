@@ -2,6 +2,8 @@ import pymongo
 
 #base hebergée https://cloud.mongodb.com/ 
 
+#user : ctatangelo@silicom.fr
+#password : Azerty#456
 
 class mongodb_connector():
 
@@ -12,20 +14,18 @@ class mongodb_connector():
     
     ##connection to MongoDB
     def connect(self):
-        self.client =  pymongo.MongoClient("mongodb+srv://dbHistory:Azerty123@cluster0.i5pmo.mongodb.net/")
+        self.client = pymongo.MongoClient("mongodb+srv://dbHistory:Azerty123@cluster0.i5pmo.mongodb.net/local?retryWrites=true&w=majority")
 
-    
     ##cretation of a DB
     def create_db(self,db_name):
         #print (self.client)
         self.mydb = self.client[db_name]
-        print(self.mydb)
+        print(self.client.list_database_names())
       #  dblist = self.client.list_database_names()
-      #  print("pouet2")
        # if db_name in dblist:
          #   log.debug("[MONGO] Database %s is already created", db_name)
         #else:
-        self.mydb = self.client[db_name]
+        #self.mydb = self.client[db_name]
 
     ## creation of collection in db
     def create_collection(self, collection_name):
@@ -34,7 +34,6 @@ class mongodb_connector():
        #     log.debug("[MONGO] Collection %s is already created", collection_name)
        # else:
         self.mycol=self.mydb[collection_name]
-        print(self.mycol)
     
     ##check if db exists
     def check_db(self, db_name):

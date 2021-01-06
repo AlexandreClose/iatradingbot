@@ -46,12 +46,16 @@ async def mainProgram( ):
 
 def main():
 
-
+    mongo=mongodb_connector()
+    mongo.connect()
+    mongo.create_db('history')
+    mongo.create_collection("EOS_listory")
+    print(mongo.check_db("history"))
     # Use asyncio to run sync and async functions
-    loop = asyncio.get_event_loop()
+    #loop = asyncio.get_event_loop()
     # Performs login
-    loop.run_until_complete( mainProgram( ) ) # Performs sync call, and await result
-    loop.run_forever()
+    #loop.run_until_complete( mainProgram( ) ) # Performs sync call, and await result
+    #loop.run_forever()
 
 if __name__ == "__main__":
     main()
