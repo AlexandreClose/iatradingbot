@@ -9,7 +9,7 @@ async def mainProgram( ):
     client=xtbClient()
 
     # process login. this will launch all the websockets and permanent streams (trades, profit, ping, keep_alive)
-    await client.login("11676157","TestTest123123")
+    await client.login("11712595","TestTest123123") #totoletrader@yopmail.com
     # open a buy transaction
     await client.trade_transaction( MODES.BUY, TRANS_TYPES.OPEN, 'DASH', 1,0,0, customComment="trade1")
     # follow all the tick prices of given array of symbols

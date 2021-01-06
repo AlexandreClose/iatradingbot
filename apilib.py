@@ -123,14 +123,14 @@ class xtbClient:
 
 	async def _get_candles(self, symbol):
 		command = {"command": "getCandles", "streamSessionId": self.stream_session_id, "symbol": symbol}
-		return await self._send_and_receive_stream(command, self.ws_stream_candles, self.candles)
+		return await self._send_and_receive_stream(command, 'CANDLES', self.ws_stream_candles, self.candles)
 
 	async def _get_keep_alive( self ):
 		command = {
 			"command": "getKeepAlive",
 			"streamSessionId": self.stream_session_id
 		}
-		return await self._send_and_receive_stream(command, self.ws_stream_keep_alive, self.keep_alives)
+		return await self._send_and_receive_stream(command, 'KEEP_ALIVE', self.ws_stream_keep_alive, self.keep_alives)
 
 	async def _get_tick_prices ( self, symbol, min_arrival_time = 5000, max_level = 2 ):
 		self.ws_stream_tick_prices_dict[symbol] = await self._open_websocket_stream()
@@ -142,11 +142,11 @@ class xtbClient:
 			"maxLevel": max_level
 		}
 		self.tick_prices_dict[symbol] = [] # init empty tick prices infos array in memory for this symbol
-		asyncio.create_task(self._send_and_receive_stream(command, self.ws_stream_tick_prices_dict[symbol], self.tick_prices_dict[symbol]))
+		asyncio.create_task(self._send_and_receive_stream(command, 'TICK_PRICES', self.ws_stream_tick_prices_dict[symbol], self.tick_prices_dict[symbol]))
 
 	async def _get_news(self ):
 		command = {"command": "getNews","streamSessionId": self.stream_session_id}
-		return await self._send_and_receive_stream(command, self.ws_stream_news, self.news)
+		return await self._send_and_receive_stream(command, 'NEWS' ,self.ws_stream_news, self.news)
 
 	async def _get_profits(self):
 		command = json.dumps({
@@ -239,33 +239,6 @@ class xtbClient:
 		else:
 			return volume
 
-
-
-	async def getStreamingTradeStatusStart(self):
-		command={"command": "getTradeStatus","streamSessionId": self.stream_session_id}
-		return await self._send_and_receive_stream(command)
-
-	async def getStreamingTradeStatusStop(self):
-		command={"command": "stopTradeStatus"}
-		return await self._send_and_receive_stream(command)
-
-	async def getStreamingTradesStart(self):
-		command = {"command": "getTrades","streamSessionId": self.stream_session_id}
-		return await self._send_and_receive_stream(command)
-
-	async def getStreamingTradesStart(self):
-		command = {"command": "getTrades","streamSessionId": self.stream_session_id}
-		return await self._send_and_receive_stream(command)
-
-	async def getStreamingTradesStop(self):
-		command = {"command": "stopTrades"}
-		return await self._send_and_receive_stream(command)
-
-
-	async def getStreamingTrades(self, data):
-		command = {"command": "trade", "data": data}
-		return await self._send_and_receive_stream(command)
-
 	async def _get_ping( self ):
 		json_command = {"command": "ping","streamSessionId": self.stream_session_id}
 		command = json.dumps(json_command)
@@ -294,13 +267,13 @@ class xtbClient:
 		response = await websocket.recv()
 		return json.loads( response )
 
-	async def _send_and_receive_stream(self, json_command, websocket, resp_array):
+	async def _send_and_receive_stream(self, json_command, label, websocket, resp_array):
 		command = json.dumps(json_command)
-		log.info( "[COMMAND] : %s", command )
+		log.info( "[COMMAND] : %s - %s", label, command )
 		await websocket.send(command)
 		while True:
 			response = await websocket.recv()
-			log.debug( response )
+			log.info( "[STREAM] : %s - %s", label, response )
 			resp_array.append( json.loads( response ))
 
 	def _remove_closed_trades( self ):
