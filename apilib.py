@@ -192,7 +192,42 @@ class xtbClient:
 			self._remove_closed_trades( )
 			log.debug( '[TRADES] total : %s', self.trades )
 
-	async def trade_transaction(self, mode, trans_type, symbol, volume, stop_loss = 0, take_profit = 0, **opt_args  ):
+
+	async def open_trade(self, symbol, volume, stop_loss, take_profit ):
+		response = await self._trade_transaction( MODES.BUY, TRANS_TYPES.OPEN, symbol, volume, stop_loss, take_profit )
+		order_id = response['returnData']['order']
+		log.info( "[OPEN TRADE] : %s", order_id )
+		return order_id
+
+	async def close_trade(self, order_id, time_limit = 0): #time_limit is infinity by default
+		passed_time = 0
+		retry = True
+		while retry == True:
+			if time_limit > 0:
+				if passed_time > time_limit:
+					break
+			if order_id in self.trades:
+				trade=self.trades[order_id]
+				print(trade)
+				response = await self._trade_transaction( MODES.SELL,
+										 TRANS_TYPES.CLOSE,
+										 trade['symbol'],
+										 trade['volume'],
+										 price = trade['close_price'],
+										 order= trade['position'] )
+
+				order_id = response['returnData']['order']
+				log.info( "[CLOSE TRADE] : %s", order_id )
+				return order_id
+			await asyncio.sleep( 0.2 ) # wait 200 ms for trying to close the trade
+			passed_time += 0.2
+
+	async def close_all_trades(self, time_limit = 0 ):
+		for (k,v) in self.trades.items():
+			await self.close_trade( k, time_limit )
+			await asyncio.sleep( 0.2 ) # wait 0.2 sec for websocket not being killed by backend
+
+	async def _trade_transaction(self, mode, trans_type, symbol, volume, stop_loss = 0, take_profit = 0, **opt_args  ):
 
 		#some controls
 		accepted_values = ['order', 'price', 'expiration', 'customComment',
@@ -227,7 +262,6 @@ class xtbClient:
 			}
 		}
 		response = await self._send_and_receive(command, self.ws_login)
-		log.debug( response )
 		return response
 
 	def _check_volume(self, volume):
@@ -273,7 +307,7 @@ class xtbClient:
 		await websocket.send(command)
 		while True:
 			response = await websocket.recv()
-			log.info( "[STREAM] : %s - %s", label, response )
+			log.debug( "[STREAM] : %s - %s", label, response )
 			resp_array.append( json.loads( response ))
 
 	def _remove_closed_trades( self ):
