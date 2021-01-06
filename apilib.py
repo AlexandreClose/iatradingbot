@@ -1,4 +1,6 @@
 import enum
+import time
+
 import websockets
 import json
 from logging_conf import log
@@ -46,11 +48,12 @@ class xtbClient:
 		self.ws_stream_candles=None
 		self.ws_stream_keep_alive=None
 		self.ws_stream_trades=None
-		self.profits=[]
+		self.ws_stream_balances=None
 		self.news=[]
 		self.candles=[]
 		self.keep_alives=[]
 		self.trades=dict()
+		self.balances=[]
 		self.ws_stream_tick_prices_dict = dict() # key : 'BITCOIN' => value : websocket stream tick prices BITCOIN (...)
 		self.tick_prices_dict = dict() # key : 'BITCOIN' => value : tick prices BITCOIN (...)
 
@@ -62,6 +65,7 @@ class xtbClient:
 		self.ws_stream_keep_alive=await self._open_websocket_stream()
 		self.ws_stream_trades=await self._open_websocket_stream()
 		self.ws_stream_profits=await self._open_websocket_stream()
+		self.ws_stream_balances=await self._open_websocket_stream()
 
 
 	async def login(self, user, password):
@@ -77,6 +81,8 @@ class xtbClient:
 		await self._fill_existing_trades()
 
 		loop = asyncio.get_event_loop()
+		# track all balances with stream
+		asyncio.run_coroutine_threadsafe( self._get_balances(), loop)
 		# regularily ping the server with stream
 		asyncio.run_coroutine_threadsafe( self._get_ping(), loop)
 		# track all trades changes with stream
@@ -132,6 +138,13 @@ class xtbClient:
 		}
 		return await self._send_and_receive_stream(command, 'KEEP_ALIVE', self.ws_stream_keep_alive, self.keep_alives)
 
+	async def _get_balances( self ):
+		command = {
+			"command": "getBalance",
+			"streamSessionId": self.stream_session_id
+		}
+		return await self._send_and_receive_stream(command, 'BALANCE', self.ws_stream_balances, self.balances)
+
 	async def _get_tick_prices ( self, symbol, min_arrival_time = 5000, max_level = 2 ):
 		self.ws_stream_tick_prices_dict[symbol] = await self._open_websocket_stream()
 		command = {
@@ -186,6 +199,8 @@ class xtbClient:
 			response = json.loads( response )['data']
 			if response['type'] == 0:
 				self.trades[response['order2']]=response
+			if response['type'] == 1:
+				self.trades[response['order2']]=response
 			if response['type'] == 2:
 				if response['closed']:
 					self.trades[response['position']]=response
@@ -223,9 +238,12 @@ class xtbClient:
 			passed_time += 0.2
 
 	async def close_all_trades(self, time_limit = 0 ):
-		for (k,v) in self.trades.items():
-			await self.close_trade( k, time_limit )
+		closed_order_ids = []
+		for k in list(self.trades.keys()):
+			order_id = await self.close_trade( k, time_limit )
+			closed_order_ids.append( order_id )
 			await asyncio.sleep( 0.2 ) # wait 0.2 sec for websocket not being killed by backend
+		return closed_order_ids
 
 	async def _trade_transaction(self, mode, trans_type, symbol, volume, stop_loss = 0, take_profit = 0, **opt_args  ):
 
@@ -301,14 +319,17 @@ class xtbClient:
 		response = await websocket.recv()
 		return json.loads( response )
 
-	async def _send_and_receive_stream(self, json_command, label, websocket, resp_array):
+	async def _send_and_receive_stream(self, json_command, label, websocket, resp_array, timestamp = False ):
 		command = json.dumps(json_command)
 		log.info( "[COMMAND] : %s - %s", label, command )
 		await websocket.send(command)
 		while True:
 			response = await websocket.recv()
 			log.debug( "[STREAM] : %s - %s", label, response )
-			resp_array.append( json.loads( response ))
+			response = json.loads( response )
+			if timestamp:
+				response['timestamp']=time.time()
+			resp_array.append( response )
 
 	def _remove_closed_trades( self ):
 		self.trades = {k: v for k, v in self.trades.items() if v['closed'] == False}

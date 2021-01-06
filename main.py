@@ -1,5 +1,7 @@
 import time
 
+import pymongo as pymongo
+
 from logging_conf import log
 from apilib import *
 import asyncio
@@ -44,14 +46,12 @@ def main():
 
     # Use asyncio to run sync and async functions
     loop = asyncio.get_event_loop()
-
     # Performs login
     loop.run_until_complete( mainProgram( ) ) # Performs sync call, and await result
-
     loop.run_forever()
 
 if __name__ == "__main__":
-
     main()
+
 
 
