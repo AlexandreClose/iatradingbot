@@ -10,6 +10,13 @@ from analyzer.mongodb_connector import mongodb_connector
 
 async def mainProgram( ):
     client=xtbClient()
+    
+    #mongodb connection
+    mongo=mongodb_connector()
+    mongo.connect()
+    #mongodb db and collection creation if needed
+    mongo.create_db('history')
+
 
     # process login. this will launch all the websockets and permanent streams (trades, profit, ping, keep_alive)
     await client.login("11712595","TestTest123123") #totoletrader@yopmail.com
@@ -32,7 +39,16 @@ async def mainProgram( ):
     timestart = int((dt_start - datetime.datetime(1970, 1, 1)).total_seconds())*1000
     dt_stop = datetime.datetime(2021, 1, 4 ,6,24,00)
     timestop = int((dt_stop - datetime.datetime(1970, 1, 1)).total_seconds())*1000
-    asyncio.create_task(client.get_history_chart(timestart,timestop,TIME_TYPE.PERIOD_M1,"EURUSD"))
+    symbol="DASH"
+    coll=symbol + "_history"
+
+    historylist= await client.get_history_chart(timestart,timestop,TIME_TYPE.PERIOD_M1,symbol)
+    print(historylist)
+    mongo.create_collection(coll)
+    mongo.set_collection(coll)
+    mongo.collection_insert_multiple(historylist['returnData']['rateInfos'])
+
+
 
     # async wait
     #await asyncio.sleep( 3 )
@@ -46,16 +62,11 @@ async def mainProgram( ):
 
 def main():
 
-    mongo=mongodb_connector()
-    mongo.connect()
-    mongo.create_db('history')
-    mongo.create_collection("EOS_listory")
-    print(mongo.check_db("history"))
     # Use asyncio to run sync and async functions
-    #loop = asyncio.get_event_loop()
+    loop = asyncio.get_event_loop()
     # Performs login
-    #loop.run_until_complete( mainProgram( ) ) # Performs sync call, and await result
-    #loop.run_forever()
+    loop.run_until_complete( mainProgram( ) ) # Performs sync call, and await result
+    loop.run_forever()
 
 if __name__ == "__main__":
     main()
