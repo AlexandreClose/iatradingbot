@@ -1,19 +1,7 @@
 import pymongo
-from logging_conf import log
 
 #base hebergée https://cloud.mongodb.com/ 
 
-client = pymongo.MongoClient("mongodb+srv://dbHistory:Azerty123@cluster0.i5pmo.mongodb.net/<dbname>?retryWrites=true&w=majority")
-db = client.test
-
-dblist = client.list_database_names()
-if not "historyDB" in dblist:
-    mydb = client["historyDB"]
-else:
-    collection_name="EOS"
-    collist = mydb.list_collection_names()
-    if not collection_name in collist:
-        mycol=mydb[collection_name]
 
 class mongodb_connector():
 
@@ -23,25 +11,30 @@ class mongodb_connector():
         self.client=None
     
     ##connection to MongoDB
-    def connection(self):
-        self.client = pymongo.MongoClient("mongodb+srv://dbHistory:Azerty123@cluster0.i5pmo.mongodb.net/<dbname>?retryWrites=true&w=majority")
-        return db.test
+    def connect(self):
+        self.client =  pymongo.MongoClient("mongodb+srv://dbHistory:Azerty123@cluster0.i5pmo.mongodb.net/")
+
     
     ##cretation of a DB
     def create_db(self,db_name):
-        dblist = self.client.list_database_names()
-        if db_name in dblist:
-            log.debug("[MONGO] Database %s is already created", db_name)
-        else:
-            self.mydb = self.client["historyDB"]
-    
+        #print (self.client)
+        self.mydb = self.client[db_name]
+        print(self.mydb)
+      #  dblist = self.client.list_database_names()
+      #  print("pouet2")
+       # if db_name in dblist:
+         #   log.debug("[MONGO] Database %s is already created", db_name)
+        #else:
+        self.mydb = self.client[db_name]
+
     ## creation of collection in db
     def create_collection(self, collection_name):
-        collist = self.mydb.list_collection_names()
-        if collection_name in collist:
-            log.debug("[MONGO] Collection %s is already created", collection_name)
-        else:
-            self.mycol=mydb[collection_name]
+      #  collist = self.mydb.list_collection_names()
+      #  if collection_name in collist:
+       #     log.debug("[MONGO] Collection %s is already created", collection_name)
+       # else:
+        self.mycol=self.mydb[collection_name]
+        print(self.mycol)
     
     ##check if db exists
     def check_db(self, db_name):
@@ -60,24 +53,32 @@ class mongodb_connector():
             return (False)
 
     ##insert value in collection
-    def collection_insert(self,mycol, data):
+    def collection_insert(self, data, mycol=None):
+        if mycol==None:
+            mycol=self.mycol
         x=mycol.insert_one(data)
         return (x.inserted_id)
     
     ##insert multiple value in collection
-    def collection_insert_multiple(self, mycol=self.mycol, data):
+    def collection_insert_multiple(self, data, mycol=None):
+        if mycol==None:
+            mycol=self.mycol
         x = mycol.insert_many(data)
         return(x.inserted_ids)
 
     #find all in collection
-    def find_all(self, mycol=self.mycol):
+    def find_all(self, mycol=None):
+        if mycol==None:
+            mycol=self.mycol
         data_list=[]
         for x in mycol.find():
             data_list.append(x)
         return data_list
 
     #find object in collection
-    def find_all(self, mycol=self.mycol, data):
+    def find_data(self, data, mycol=None):
+        if mycol==None:
+            mycol=self.mycol
         data_list=[]
         mydoc=mycol.find(data)
         for x in mydoc:

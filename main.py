@@ -6,6 +6,7 @@ from logging_conf import log
 from apilib import *
 import asyncio
 import datetime
+from analyzer.mongodb_connector import mongodb_connector
 
 async def mainProgram( ):
     client=xtbClient()
@@ -42,7 +43,9 @@ async def mainProgram( ):
     #log.info('[ TRADES AFTER 10 SEC ] : %s', await client.get_all_updated_trades() )
 
 
+
 def main():
+
 
     # Use asyncio to run sync and async functions
     loop = asyncio.get_event_loop()
