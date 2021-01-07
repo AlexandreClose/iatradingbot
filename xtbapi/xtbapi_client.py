@@ -68,14 +68,13 @@ class xtbClient:
 		self.ws_stream_balances=await self._open_websocket_stream()
 
 
-	async def login(self, user, password, run_stream=True):
+	async def login(self, user, password, run_stream = True):
 		await self._init_websockets()
 		command = {"command" : "login","arguments": {"userId": user ,"password": password}}
-		response = await self._send_and_receive(command, self.ws_login)
+		response = await asyncio.ensure_future( self._send_and_receive(command, self.ws_login) )
 		assert response['status']==True
 		self.stream_session_id = response['streamSessionId']
 		log.info( "[LOGIN] : Success. Session open on XTB with stream session id %s", self.stream_session_id )
-		return response
 
 		if run_stream:
 			# get all existing trades with sync call
@@ -95,6 +94,98 @@ class xtbClient:
 			# track all news with stream
 			asyncio.run_coroutine_threadsafe( self._get_news(), loop)
 
+		return response
+
+	### BUY
+	async def open_buy_trade(self, symbol, volume, stop_loss, take_profit ):
+		response = await asyncio.ensure_future(self._trade_transaction( MODES.BUY, TRANS_TYPES.OPEN, symbol, volume, stop_loss, take_profit ))
+		order_id = response['returnData']['order']
+		log.info( "[OPEN BUY] : %s", order_id )
+		return order_id
+
+	async def open_order_buy_limit( self, symbol, volume, stop_loss, take_profit, price ):
+		response = await asyncio.ensure_future( self._trade_transaction( MODES.BUY_LIMIT, TRANS_TYPES.OPEN, symbol, volume, stop_loss, take_profit, price=price ))
+		order_id = response['returnData']['order']
+		log.info( "[OPEN BUY LIMIT] : %s", order_id )
+		return order_id
+
+	async def open_order_buy_stop( self, symbol, volume, stop_loss, take_profit, price ):
+		response = await asyncio.ensure_future( self._trade_transaction( MODES.BUY_STOP, TRANS_TYPES.OPEN, symbol, volume, stop_loss, take_profit, price=price ))
+		order_id = response['returnData']['order']
+		log.info( "[OPEN BUY STOP] : %s", order_id )
+		return order_id
+
+	### SELL
+	async def open_sell_trade(self, symbol, volume, stop_loss, take_profit ):
+		response = await asyncio.ensure_future( self._trade_transaction( MODES.SELL, TRANS_TYPES.OPEN, symbol, volume, stop_loss, take_profit ))
+		order_id = response['returnData']['order']
+		log.info( "[OPEN SELL] : %s", order_id )
+		return order_id
+
+	async def open_order_sell_limit( self, symbol, volume, stop_loss, take_profit, price ):
+		response = await asyncio.ensure_future(  self._trade_transaction( MODES.SELL_LIMIT, TRANS_TYPES.OPEN, symbol, volume, stop_loss, take_profit, price=price ))
+		order_id = response['returnData']['order']
+		log.info( "[OPEN SELL LIMIT] : %s", order_id )
+		return order_id
+
+	async def open_order_sell_stop( self, symbol, volume, stop_loss, take_profit, price ):
+		response = await asyncio.ensure_future(  self._trade_transaction( MODES.SELL_STOP, TRANS_TYPES.OPEN, symbol, volume, stop_loss, take_profit, price=price ))
+		order_id = response['returnData']['order']
+		log.info( "[OPEN SELL STOP] : %s", order_id )
+		return order_id
+
+	async def close_trade(self, order_id, time_limit = 0): #time_limit is infinity by default
+		passed_time = 0
+		retry = True
+		while retry == True:
+			if time_limit > 0:
+				if passed_time > time_limit:
+					break
+			if order_id in self.trades:
+				trade=self.trades[order_id]
+				if 'cmd' in trade and trade['cmd'] in (0,1):
+					# this a position to close
+					response = await self._trade_transaction( MODES(trade['cmd']),
+															  TRANS_TYPES.CLOSE,
+															  trade['symbol'],
+															  trade['volume'],
+															  price = trade['close_price'],
+															  order= trade['position'] )
+				else:
+					# this is an order to cancel
+					response = await self._trade_transaction( MODES(trade['cmd']),
+															  TRANS_TYPES.DELETE,
+															  trade['symbol'],
+															  trade['volume'],
+															  price = trade['close_price'],
+															  order= trade['position'] )
+				if 'errorCode' not in response:
+					order_id = response['returnData']['order']
+					log.info( "[CLOSE TRADE] : %s", order_id )
+				else:
+					log.error("[ERROR CLOSE TRADE] " + str(order_id) )
+				return order_id
+			await asyncio.sleep( 0.2 ) # wait 200 ms for trying to close the trade
+			passed_time += 0.2
+
+	async def close_all_trades(self, time_limit = 0, **opt_args_filter ):
+		trades = self.trades
+		#filter if arg filters are given
+		if opt_args_filter is not None:
+			if 'profit' in opt_args_filter:
+				profit = opt_args_filter['profit']
+				if profit is not None:
+					trades = dict((k, v) for (k, v) in trades.items() if 'profit' in v and v['profit'] > profit)
+			if 'symbol' in opt_args_filter:
+				symbol = opt_args_filter['symbol']
+				if symbol is not None:
+					trades = dict((k, v) for (k, v) in trades.items() if 'symbol' in v and v['symbol'] == symbol)
+		closed_order_ids = []
+		for k in list(trades.keys()):
+			order_id = await asyncio.ensure_future(self.close_trade( k, time_limit ))
+			closed_order_ids.append( order_id )
+			await asyncio.sleep( 0.2 ) # wait 0.2 sec for websocket not being killed by backend
+		return closed_order_ids
 
 	async def get_all_updated_trades(self, **opt_args_filter ):
 		trades = self.trades
@@ -102,11 +193,12 @@ class xtbClient:
 			if 'profit' in opt_args_filter:
 				profit = opt_args_filter['profit']
 				if profit is not None:
-					trades = [x for x in trades.values() if x['profit'] == profit]
+					trades = dict((k, v) for (k, v) in trades.items() if 'profit' in v and v['profit'] > profit)
 			if 'symbol' in opt_args_filter:
 				symbol = opt_args_filter['symbol']
 				if symbol is not None:
-					trades = [x for x in trades.values() if x['symbol'] == symbol]
+					trades = dict((k, v) for (k, v) in trades.items() if 'symbol' in v and v['symbol'] == symbol)
+		trades = dict((k, v) for (k, v) in trades.items() if 'state' in v and v['state'] != 'Deleted')
 		return trades
 
 	async def get_symbol(self, symbol):
@@ -194,7 +286,7 @@ class xtbClient:
 		command = {
 			"command": "getTrades",
 			"arguments": {
-				"openedOnly": True
+				"openedOnly": False
 			}
 		}
 		existing_trades = await self._send_and_receive(command, websocket=self.ws_login)
@@ -210,9 +302,7 @@ class xtbClient:
 		while True:
 			response = await self.ws_stream_trades.recv()
 			response = json.loads( response )['data']
-			if response['type'] == 0:
-				self.trades[response['order2']]=response
-			if response['type'] == 1:
+			if response['type'] in (0,1,3):
 				self.trades[response['order2']]=response
 			if response['type'] == 2:
 				if response['closed']:
@@ -220,43 +310,6 @@ class xtbClient:
 			self._remove_closed_trades( )
 			log.debug( '[TRADES] total : %s', self.trades )
 
-
-	async def open_trade(self, symbol, volume, stop_loss, take_profit ):
-		response = await self._trade_transaction( MODES.BUY, TRANS_TYPES.OPEN, symbol, volume, stop_loss, take_profit )
-		order_id = response['returnData']['order']
-		log.info( "[OPEN TRADE] : %s", order_id )
-		return order_id
-
-	async def close_trade(self, order_id, time_limit = 0): #time_limit is infinity by default
-		passed_time = 0
-		retry = True
-		while retry == True:
-			if time_limit > 0:
-				if passed_time > time_limit:
-					break
-			if order_id in self.trades:
-				trade=self.trades[order_id]
-				print(trade)
-				response = await self._trade_transaction( MODES.SELL,
-										 TRANS_TYPES.CLOSE,
-										 trade['symbol'],
-										 trade['volume'],
-										 price = trade['close_price'],
-										 order= trade['position'] )
-
-				order_id = response['returnData']['order']
-				log.info( "[CLOSE TRADE] : %s", order_id )
-				return order_id
-			await asyncio.sleep( 0.2 ) # wait 200 ms for trying to close the trade
-			passed_time += 0.2
-
-	async def close_all_trades(self, time_limit = 0 ):
-		closed_order_ids = []
-		for k in list(self.trades.keys()):
-			order_id = await self.close_trade( k, time_limit )
-			closed_order_ids.append( order_id )
-			await asyncio.sleep( 0.2 ) # wait 0.2 sec for websocket not being killed by backend
-		return closed_order_ids
 
 	async def _trade_transaction(self, mode, trans_type, symbol, volume, stop_loss = 0, take_profit = 0, **opt_args  ):
 
@@ -293,6 +346,17 @@ class xtbClient:
 			}
 		}
 		response = await self._send_and_receive(command, self.ws_login)
+		# intialize the transaction in the trades dict;
+		if 'returnData' in response and 'order' in response['returnData'] and 'errorCode' not in response['returnData']:
+			self.trades[response['returnData']['order']]={
+				'symbol':symbol,
+				'volume':volume,
+				'cmd':mode.value,
+				'close_price': opt_args['price'],
+				'order':response['returnData']['order'],
+				'position':response['returnData']['order'],
+				'order2':response['returnData']['order']
+			} # init trade in trade dict
 		return response
 
 	def _check_volume(self, volume):
@@ -346,4 +410,5 @@ class xtbClient:
 
 	def _remove_closed_trades( self ):
 		self.trades = {k: v for k, v in self.trades.items() if v['closed'] == False}
+		self.trades = {k: v for k, v in self.trades.items() if v['state'] != 'Deleted'}
 

@@ -7,10 +7,9 @@ class TestTweetAnalyzer(unittest.TestCase):
     def test_get_tweets_about_symbol(self ):
         symbol = 'BITCOIN'
         tweetAnalyzer = TweetAnalyzer()
-        tweetAnalyzer.get_tweets_about_symbol( symbol )
-        with open('custom_out.json', 'r') as f:
-            tweets = json.load(f)
-            self.assertEqual(len(tweets), 100)
+        tweets_df = tweetAnalyzer.get_tweets_about_symbol( symbol )
+        print( tweets_df['tweet'] )
+        self.assertEqual( len(tweets_df), 100)
 
 if __name__ == '__main__':
     unittest.main()

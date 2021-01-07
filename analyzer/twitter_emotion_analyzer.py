@@ -10,9 +10,14 @@ class TweetAnalyzer:
         if symbol == 'BITCOIN':
             search = "bitcoin OR BITCOIN OR BTC"
         c = twint.Config()
-        c.Limit=10
         c.Search = search
-        c.Lang = "fr"
+        c.Lang = "en"
+        c.Limit = 100
         c.Store_json = True
-        c.Output = "custom_out.json"
-        return twint.run.Search(c)
+        c.Pandas = True
+        c.Hide_output = True
+        twint.run.Search(c)
+        tweets_df = twint.storage.panda.Tweets_df
+        return tweets_df
+
+
