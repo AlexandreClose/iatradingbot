@@ -68,31 +68,32 @@ class xtbClient:
 		self.ws_stream_balances=await self._open_websocket_stream()
 
 
-	async def login(self, user, password):
+	async def login(self, user, password, run_stream=True):
 		await self._init_websockets()
 		command = {"command" : "login","arguments": {"userId": user ,"password": password}}
 		response = await self._send_and_receive(command, self.ws_login)
 		assert response['status']==True
 		self.stream_session_id = response['streamSessionId']
 		log.info( "[LOGIN] : Success. Session open on XTB with stream session id %s", self.stream_session_id )
-		log.debug( response )
+		return response
 
-		# get all existing trades with sync call
-		await self._fill_existing_trades()
+		if run_stream:
+			# get all existing trades with sync call
+			await self._fill_existing_trades()
 
-		loop = asyncio.get_event_loop()
-		# track all balances with stream
-		asyncio.run_coroutine_threadsafe( self._get_balances(), loop)
-		# regularily ping the server with stream
-		asyncio.run_coroutine_threadsafe( self._get_ping(), loop)
-		# track all trades changes with stream
-		asyncio.run_coroutine_threadsafe(self._track_trades_stream(), loop)
-		# track all profit of trades with stream
-		asyncio.run_coroutine_threadsafe(self._get_profits(), loop)
-		# track all keep_alive with stream
-		asyncio.run_coroutine_threadsafe( self._get_keep_alive(), loop)
-		# track all news with stream
-		asyncio.run_coroutine_threadsafe( self._get_news(), loop)
+			loop = asyncio.get_event_loop()
+			# track all balances with stream
+			asyncio.run_coroutine_threadsafe( self._get_balances(), loop)
+			# regularily ping the server with stream
+			asyncio.run_coroutine_threadsafe( self._get_ping(), loop)
+			# track all trades changes with stream
+			asyncio.run_coroutine_threadsafe(self._track_trades_stream(), loop)
+			# track all profit of trades with stream
+			asyncio.run_coroutine_threadsafe(self._get_profits(), loop)
+			# track all keep_alive with stream
+			asyncio.run_coroutine_threadsafe( self._get_keep_alive(), loop)
+			# track all news with stream
+			asyncio.run_coroutine_threadsafe( self._get_news(), loop)
 
 
 	async def get_all_updated_trades(self, **opt_args_filter ):
@@ -121,11 +122,13 @@ class xtbClient:
 
 	async def get_all_symbols(self):
 		command = {"command": "getAllSymbols"}
-		return await self._send_and_receive(command, self.ws_trades)
+		response = await self._send_and_receive(command, self.ws_login)
+		return response['returnData']
 
 	async def get_calendar(self):
 		command = {"command": "getCalendar"}
-		return await self._send_and_receive(command, self.ws_trades)
+		response = await self._send_and_receive(command, self.ws_login)
+		return response['returnData']
 
 	async def follow_tick_prices( self, symbols ):
 		# clear all the followed symbols tick prices

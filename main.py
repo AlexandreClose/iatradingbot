@@ -1,4 +1,4 @@
-from xtbapi.apilib import *
+from xtbapi.xtbapi_client import *
 import asyncio
 import datetime
 
