@@ -2,6 +2,8 @@ from analyzer.mongodb_connector import mongodb_connector
 from xtbapi.xtbapi_client import *
 import asyncio
 import datetime
+from logging_conf import log
+
 
 
 async def mainProgram( loop ):
@@ -15,40 +17,44 @@ async def mainProgram( loop ):
     await asyncio.sleep( 2 )
 
     # open a orders
-    await client.open_buy_trade( 'DASH', 1,0,0 )
-    await client.open_order_buy_limit( 'DASH', 1,0,0,12)
-    await client.open_order_buy_stop( 'DASH', 1,0,0,12)
-    await client.open_order_sell_stop( 'DASH', 1,0,0,12)
+    #await client.open_buy_trade( 'DASH', 1,0,0 )
+    #await client.open_order_buy_limit( 'DASH', 1,0,0,12)
+    #await client.open_order_buy_stop( 'DASH', 1,0,0,12)
+    #await client.open_order_sell_stop( 'DASH', 1,0,0,12)
 
 
-    log.info('[TRADES DASH] : %s', await client.get_all_updated_trades( symbol='DASH') )
-    await client.close_all_trades()
-    log.info('[TRADES DASH] : %s', await client.get_all_updated_trades( symbol='DASH') )
+    #log.info('[TRADES DASH] : %s', await client.get_all_updated_trades( symbol='DASH') )
+    #await client.close_all_trades()
+    #log.info('[TRADES DASH] : %s', await client.get_all_updated_trades( symbol='DASH') )
 
     # follow all the tick prices of given array of symbols
-    await client.follow_tick_prices( ['BITCOIN','DASH'])
+    #await client.follow_tick_prices( ['BITCOIN','DASH'])
 
     # WORK on history
 
     # #mongodb connection
-    # mongo=mongodb_connector()
-    # mongo.connect()
+    mongo=mongodb_connector()
+    mongo.connect()
     # #mongodb db and collection creation if needed
     # mongo.create_db('history')
+    mongo.set_db('history')
+    symbol="DASH"
+    coll=symbol + "_history"
+    mongo.set_collection(coll)
+    log.info(mongo.sortdata("ctm"))
 
-    # #work on charts
-    # dt_start = datetime.datetime(2021, 1, 4 ,5,22,00)
-    # timestart = int((dt_start - datetime.datetime(1970, 1, 1)).total_seconds())*1000
-    # dt_stop = datetime.datetime(2021, 1, 4 ,6,24,00)
-    # timestop = int((dt_stop - datetime.datetime(1970, 1, 1)).total_seconds())*1000
-    # symbol="DASH"
-    # coll=symbol + "_history"
+    # #get missing chart and push to db
+    dt_start = datetime.now()
+    timestart = int((dt_start - datetime.datetime(1970, 1, 1)).total_seconds())*1000
+    dt_stop = datetime.datetime(2021, 1, 8 ,14,00,00)
+    timestop = int((dt_stop - datetime.datetime(1970, 1, 1)).total_seconds())*1000
 
-    # historylist= await client.get_history_chart(timestart,timestop,TIME_TYPE.PERIOD_M1,symbol)
-    # print(historylist)
+
+    historylist= await client.get_history_chart(timestart,timestop,TIME_TYPE.PERIOD_M1,symbol)
+    #log.info(historylist['returnData']['rateInfos'])
     # mongo.create_collection(coll)
-    # mongo.set_collection(coll)
-    # mongo.collection_insert_multiple(historylist['returnData']['rateInfos'])
+
+    #mongo.collection_insert_multiple(historylist['returnData']['rateInfos'])
 
 
 def main():

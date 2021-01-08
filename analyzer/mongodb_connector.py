@@ -91,22 +91,33 @@ class mongodb_connector():
             data_list.append(x)
         return data_list
 
+    ##sort data ascending  = 1, descending=2
+    def sortdata(self,data,standard,mycol=None):
+        if standard==1:
+            
+        if mycol==None:
+            mycol=self.mycol
+        data_list=[]
+        mydoc=mycol.find().sort(data)
+        for x in mydoc:
+            data_list.append(x)
+        return data_list
 
     ##getter
     def get_db(self):
-        return self._mydb
+        return self.mydb
     
     ##getter
     def get_collection(self):
-        return self._mycol
+        return self.mycol
 
     ##setter
     def set_db(self, db_name):
-        self._mydb=db_name
+        self.mydb=self.client[db_name]
     
     ##setter
     def set_collection(self, collection_name):
-        self._mycol=collection_name
+        self.mycol=self.mydb[collection_name]
 
     
 
