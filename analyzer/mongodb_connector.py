@@ -69,7 +69,7 @@ class mongodb_connector():
     def collection_insert_multiple(self, data, mycol=None):
         if mycol==None:
             mycol=self.mycol
-        x = mycol.insert_many(data)
+        x = mycol.insert_many(data, ordered=False)
         return(x.inserted_ids)
 
     #find all in collection
@@ -94,11 +94,13 @@ class mongodb_connector():
     ##sort data ascending  = 1, descending=2
     def sortdata(self,data,standard,mycol=None):
         if standard==1:
-            
+            sort=1
+        if standard==2:
+            sort=-1
         if mycol==None:
             mycol=self.mycol
         data_list=[]
-        mydoc=mycol.find().sort(data)
+        mydoc=mycol.find().sort(data,sort)
         for x in mydoc:
             data_list.append(x)
         return data_list
