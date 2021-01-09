@@ -376,10 +376,10 @@ class xtbClient:
 			await self.ws_ping.send(command)
 			await asyncio.sleep( 8 ) # wait 8 sec for sending ping again
 
-	async def get_history_chart(self,timestart,timeend,period,symbol):
-		chartinfo={"end": timeend,"period": period,"start": timestart,"symbol": symbol,"ticks": 0}
+	async def get_chart_range_request(self,timestart,timeend,period,symbol):
 		command = {"command": "getChartRangeRequest","arguments": {"info": {"end": timeend,"period": period.value,"start": timestart,"symbol": symbol,"ticks": 0}}}
-		return await self._send_and_receive(command, self.ws_login)
+		response = await self._send_and_receive(command, self.ws_login)
+		return response['returnData']['rateInfos']
 
 	async def _open_websocket(self):
 		return await websockets.connect(self.uri, max_size=1_000_000_000)

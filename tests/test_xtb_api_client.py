@@ -1,6 +1,5 @@
 import asyncio
 import unittest
-import json
 from xtbapi.xtbapi_client import xtbClient
 
 
