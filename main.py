@@ -23,14 +23,10 @@ async def mainProgram( ):
     clientMongo.deleteAll()
 
     historic_provider=HistoricProvider( XtbHistoricProvider(client),YahooHistoricProvider() )
-    # await historic_provider.fetch_and_store_max_history( 'BITCOIN' )
     await historic_provider.fetch_and_store_max_history( 'BITCOIN' )
-    # await historic_provider.fetch_and_store_max_history( 'EOS' )
-
 
     datas = list(clientMongo.find())
     datas = pd.DataFrame.from_records(datas)
-    print(datas)
     datas.plot( x="ctm", y="open")
     plt.show()
 

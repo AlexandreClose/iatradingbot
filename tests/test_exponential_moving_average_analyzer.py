@@ -2,10 +2,6 @@ import asyncio
 import unittest
 
 from analyzer.exponential_moving_average_analyzer import ExponentialMovingAverageAnalyzer
-from analyzer.moving_average_analyzer import MovingAverageAnalyzer
-from xtbapi.xtbapi_client import xtbClient
-from historicprovider.yahoo_historic_provider import YahooHistoricProvider
-import numpy as np
 import matplotlib.pyplot as plt
 
 class TestMovingAverageAnalyzer(unittest.TestCase):
