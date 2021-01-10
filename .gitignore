@@ -5,6 +5,7 @@ venv
 .venv
 # PyCharm
 .idea/
+iatradingbot.iml
 ### Python template
 # Distribution / packaging
 *.egg-info/
