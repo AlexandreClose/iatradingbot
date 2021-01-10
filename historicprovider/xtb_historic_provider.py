@@ -1,9 +1,13 @@
 import datetime
 
-import pandas as pd
-import yfinance as yf
 from xtbapi.xtbapi_client import *
-from analyzer.mongodb_client_history import MongoDbClientHistory
+from dao.mongodb_client_history import MongoDbClientHistory
+
+def extract_time(json):
+    try:
+        return int(json['ctm'])
+    except KeyError:
+        return 0
 
 class XtbHistoricProvider():
 
@@ -27,5 +31,7 @@ class XtbHistoricProvider():
         datas_13_month_earlier=await clientXtb.get_chart_range_request( timestart_13_month_earlier, timestop, TIME_TYPE.PERIOD_H4, symbol)
         datas_max_month_earlier=await clientXtb.get_chart_range_request( timestart_max_month_earlier, timestop, TIME_TYPE.PERIOD_D1, symbol)
         all_datas = datas_1_month_earlier + datas_7_month_earlier + datas_13_month_earlier + datas_max_month_earlier
+
+        all_datas.sort( key = extract_time)
 
         client.insert_multiple( all_datas )

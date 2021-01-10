@@ -3,8 +3,14 @@ from datetime import datetime
 import pandas as pd
 import yfinance as yf
 
-from analyzer.mongodb_client_history import MongoDbClientHistory
+from dao.mongodb_client_history import MongoDbClientHistory
 
+
+def extract_time(json):
+    try:
+        return int(json['ctm'])
+    except KeyError:
+        return 0
 
 class YahooHistoricProvider():
 
@@ -12,15 +18,19 @@ class YahooHistoricProvider():
 
     async def send_max_history( self, symbol):
 
-        data1 = yf.download( tickers = symbol,period = "6d",interval = "1m",group_by = 'ticker',auto_adjust = True,prepost = True,threads = True,proxy = None)
-        data2 = yf.download( tickers = symbol,period = "max",interval = "30m",group_by = 'ticker',auto_adjust = True,prepost = True,threads = True,proxy = None)
-        data3 = yf.download( tickers = symbol,period = "max",interval = "1d",group_by = 'ticker',auto_adjust = True,prepost = True,threads = True,proxy = None)
+        if symbol == 'BITCOIN':
+            symbol = 'BTC-USD'
 
-        data=pd.concat( [data1, data2, data3], ignore_index=False)
+        ticker = yf.Ticker(symbol)
+        data1 = ticker.history(period="100y",interval="1d")
+        data2 = ticker.history(period="59d",interval="1m")
+        data=pd.concat( [data1,data2], ignore_index=False)
+
         data['datetime'] = data.index
         data['timestamp'] = data['datetime'].apply(lambda dt: datetime.timestamp(dt))
 
         data.drop_duplicates(subset=['timestamp'])
+        print(len(data))
 
         client = MongoDbClientHistory( symbol )
         all_datas = []
@@ -34,5 +44,8 @@ class YahooHistoricProvider():
                 "vol" : row['Volume']
             }
             all_datas.append(cleanData)
+        all_datas.sort(key=extract_time)
         client.insert_multiple( all_datas )
+
+
 

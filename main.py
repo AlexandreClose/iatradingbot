@@ -1,8 +1,14 @@
+import matplotlib
+import pandas as pd
+
+from dao.mongodb_client_history import MongoDbClientHistory
 from historicprovider.historic_provider import HistoricProvider
 from historicprovider.xtb_historic_provider import XtbHistoricProvider
 from historicprovider.yahoo_historic_provider import YahooHistoricProvider
 from xtbapi.xtbapi_client import *
-import asyncio
+import matplotlib.pyplot as plt
+
+matplotlib.use('TkAgg')
 
 
 async def mainProgram( ):
@@ -13,10 +19,21 @@ async def mainProgram( ):
 
     await asyncio.sleep( 1 )
 
-    historic_provider=HistoricProvider( XtbHistoricProvider(client), YahooHistoricProvider() )
-    #await historic_provider.fetch_and_store_max_history( 'BITCOIN' )
-    await historic_provider.fetch_and_store_max_history( 'DASH' )
+    clientMongo = MongoDbClientHistory('BITCOIN')
+    clientMongo.deleteAll()
+
+    historic_provider=HistoricProvider( XtbHistoricProvider(client),YahooHistoricProvider() )
+    # await historic_provider.fetch_and_store_max_history( 'BITCOIN' )
+    await historic_provider.fetch_and_store_max_history( 'BITCOIN' )
     # await historic_provider.fetch_and_store_max_history( 'EOS' )
+
+
+    datas = list(clientMongo.find())
+    datas = pd.DataFrame.from_records(datas)
+    print(datas)
+    datas.plot( x="ctm", y="open")
+    plt.show()
+
 
 def main():
     # Use asyncio to run sync and async functions

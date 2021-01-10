@@ -1,6 +1,5 @@
 import enum
 import time
-
 import websockets
 import json
 from logging_conf import log
