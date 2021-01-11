@@ -19,16 +19,25 @@ async def mainProgram( ):
 
     await asyncio.sleep( 1 )
 
-    clientMongo = MongoDbClientHistory('BITCOIN')
-    clientMongo.deleteAll()
+    await client.follow_tick_prices( ["BITCOIN"])
 
-    historic_provider=HistoricProvider( XtbHistoricProvider(client),YahooHistoricProvider() )
-    await historic_provider.fetch_and_store_max_history( 'BITCOIN' )
 
-    datas = list(clientMongo.find())
-    datas = pd.DataFrame.from_records(datas)
-    datas.plot( x="ctm", y="open")
-    plt.show()
+    await asyncio.sleep(10)
+
+    # get the last ten minutes ticks in a dict key = timestamp, value = tick
+    tick2 = await client.get_tick_prices_time_delta('BITCOIN' , minute_timedelta = 10 )
+
+
+    #clientMongo = MongoDbClientHistory('BITCOIN')
+    #clientMongo.deleteAll()
+
+    #historic_provider=HistoricProvider( XtbHistoricProvider(client),YahooHistoricProvider() )
+    #await historic_provider.fetch_and_store_max_history( 'BITCOIN' )
+
+   # datas = list(clientMongo.find())
+    #datas = pd.DataFrame.from_records(datas)
+    #datas.plot( x="ctm", y="open")
+    #plt.show()
 
 
 def main():

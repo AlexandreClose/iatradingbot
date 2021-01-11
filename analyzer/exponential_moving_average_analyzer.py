@@ -5,7 +5,7 @@ from dao.mongodb_client_history import MongoDbClientHistory
 
 class ExponentialMovingAverageAnalyzer:
 
-    def __init__(self, symbol):
+    def __init__(self, symbol ):
         self.symbol = symbol
         self.datas = self._get_history_dataframe( symbol )
 

@@ -1,9 +1,16 @@
+import datetime
 import enum
 import time
 import websockets
 import json
 from logging_conf import log
 import asyncio
+
+def extract_time(json):
+    try:
+        return int(json['timestamp'])
+    except KeyError:
+        return 0
 
 class MODES(enum.Enum):
 	BUY = 0
@@ -34,7 +41,7 @@ class TIME_TYPE(enum.Enum):
 	PERIOD_MN1 = 43200
 
 
-class xtbClient:
+class xtbClient():
 
 
 	def __init__(self):
@@ -51,10 +58,10 @@ class xtbClient:
 		self.news=[]
 		self.candles=[]
 		self.keep_alives=[]
+		self.tick_prices_dict=dict()
 		self.trades=dict()
 		self.balances=[]
 		self.ws_stream_tick_prices_dict = dict() # key : 'BITCOIN' => value : websocket stream tick prices BITCOIN (...)
-		self.tick_prices_dict = dict() # key : 'BITCOIN' => value : tick prices BITCOIN (...)
 
 	async def _init_websockets(self):
 		self.ws_login=await self._open_websocket()
@@ -186,6 +193,12 @@ class xtbClient:
 			await asyncio.sleep( 0.2 ) # wait 0.2 sec for websocket not being killed by backend
 		return closed_order_ids
 
+	async def get_tick_prices_time_delta(self, symbol, minute_timedelta = 1 ):
+		tick_prices = self.tick_prices_dict[symbol]
+		for timestamp in tick_prices.keys():
+			if timestamp > datetime.datetime.now().timestamp() - datetime.timedelta( minutes= minute_timedelta).total_seconds():
+				return {k:tick_prices[k] for k in tick_prices.keys() if k >= timestamp}
+
 	async def get_all_updated_trades(self, **opt_args_filter ):
 		trades = self.trades
 		if opt_args_filter is not None:
@@ -258,8 +271,8 @@ class xtbClient:
 			"minArrivalTime": min_arrival_time,
 			"maxLevel": max_level
 		}
-		self.tick_prices_dict[symbol] = [] # init empty tick prices infos array in memory for this symbol
-		asyncio.create_task(self._send_and_receive_stream(command, 'TICK_PRICES', self.ws_stream_tick_prices_dict[symbol], self.tick_prices_dict[symbol]))
+		self.tick_prices_dict[symbol] = {} # init empty tick prices infos array in memory for this symbol
+		asyncio.create_task(self._send_and_receive_stream(command, 'TICK_PRICES', self.ws_stream_tick_prices_dict[symbol], self.tick_prices_dict[symbol], timestamp = False, timestamp_as_key = True ) )
 
 	async def _get_news(self ):
 		command = {"command": "getNews","streamSessionId": self.stream_session_id}
@@ -395,17 +408,21 @@ class xtbClient:
 		response = await websocket.recv()
 		return json.loads( response )
 
-	async def _send_and_receive_stream(self, json_command, label, websocket, resp_array, timestamp = False ):
+	async def _send_and_receive_stream(self, json_command, label, websocket, resp_array, timestamp = False, timestamp_as_key = False ):
 		command = json.dumps(json_command)
 		log.info( "[COMMAND] : %s - %s", label, command )
 		await websocket.send(command)
 		while True:
 			response = await websocket.recv()
+			print(response)
 			log.debug( "[STREAM] : %s - %s", label, response )
-			response = json.loads( response )
+			response = json.loads( response )['data']
 			if timestamp:
 				response['timestamp']=time.time()
-			resp_array.append( response )
+			if timestamp_as_key:
+				resp_array[response['timestamp']]=response
+			else:
+				resp_array.append( response )
 
 	def _remove_closed_trades( self ):
 		self.trades = {k: v for k, v in self.trades.items() if v['closed'] == False}
