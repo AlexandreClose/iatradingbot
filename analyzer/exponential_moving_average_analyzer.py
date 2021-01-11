@@ -22,4 +22,4 @@ class ExponentialMovingAverageAnalyzer:
 
     def compute_exponential_moving_average(self, window_size):
         ema = self.datas.ewm(span=window_size, adjust=False).mean()
-        return ema
+        return [ema, self.datas]
