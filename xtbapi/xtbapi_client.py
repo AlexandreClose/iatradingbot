@@ -272,7 +272,7 @@ class xtbClient():
 			"maxLevel": max_level
 		}
 		self.tick_prices_dict[symbol] = {} # init empty tick prices infos array in memory for this symbol
-		asyncio.create_task(self._send_and_receive_stream(command, 'TICK_PRICES', self.ws_stream_tick_prices_dict[symbol], self.tick_prices_dict[symbol], timestamp = False, timestamp_as_key = True ) )
+		asyncio.create_task(self._send_and_receive_ticks_stream(command, 'TICK_PRICES', self.ws_stream_tick_prices_dict[symbol], self.tick_prices_dict[symbol] ) )
 
 	async def _get_news(self ):
 		command = {"command": "getNews","streamSessionId": self.stream_session_id}
@@ -391,7 +391,11 @@ class xtbClient():
 	async def get_chart_range_request(self,timestart,timeend,period,symbol):
 		command = {"command": "getChartRangeRequest","arguments": {"info": {"end": timeend,"period": period.value,"start": timestart,"symbol": symbol,"ticks": 0}}}
 		response = await self._send_and_receive(command, self.ws_login)
-		return response['returnData']['rateInfos']
+		response = response['returnData']['rateInfos']
+		dictHistory = {}
+		for data_history in response:
+			dictHistory[data_history['ctm']]=data_history
+		return dictHistory
 
 	async def _open_websocket(self):
 		return await websockets.connect(self.uri, max_size=1_000_000_000)
@@ -423,6 +427,19 @@ class xtbClient():
 				resp_array[response['timestamp']]=response
 			else:
 				resp_array.append( response )
+
+	async def _send_and_receive_ticks_stream(self, json_command, label, websocket, resp_array ):
+		command = json.dumps(json_command)
+		log.info( "[COMMAND] : %s - %s", label, command )
+		await websocket.send(command)
+		while True:
+			response = await websocket.recv()
+			print(response)
+			log.debug( "[STREAM] : %s - %s", label, response )
+			response = json.loads( response )['data']
+			if response['level'] == 0 :
+				response['timestamp'] = response['timestamp']*0.001
+				resp_array[response['timestamp']]=response
 
 	def _remove_closed_trades( self ):
 		self.trades = {k: v for k, v in self.trades.items() if v['closed'] == False}

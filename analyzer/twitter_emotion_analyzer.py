@@ -1,4 +1,5 @@
 import twint
+from textblob import TextBlob
 
 class TweetAnalyzer:
 
@@ -19,5 +20,7 @@ class TweetAnalyzer:
         twint.run.Search(c)
         tweets_df = twint.storage.panda.Tweets_df
         return tweets_df
+
+
 
 

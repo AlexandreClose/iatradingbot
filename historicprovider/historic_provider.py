@@ -6,4 +6,9 @@ class HistoricProvider():
         for provider in self.providers:
             await provider.send_max_history( symbol )
 
+    async def fetch_time_delta_history(self, symbol, minutes_number):
+        for provider in self.providers:
+            return await provider.fetch_time_delta_history( symbol, minutes_number )
+
+
 
