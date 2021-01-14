@@ -14,25 +14,21 @@ def extract_time(json):
 
 class YahooHistoricProvider():
 
-    # def __init__(self):
-
-    async def send_max_history( self, symbol):
+    async def fetch_max_history(self, symbol):
 
         if symbol == 'BITCOIN':
             symbol = 'BTC-USD'
 
         ticker = yf.Ticker(symbol)
         data1 = ticker.history(period="100y",interval="1d")
-        data2 = ticker.history(period="59d",interval="1m")
+        data2 = ticker.history(period="7d",interval="1m")
         data=pd.concat( [data1,data2], ignore_index=False)
 
         data['datetime'] = data.index
         data['timestamp'] = data['datetime'].apply(lambda dt: datetime.timestamp(dt))
 
         data.drop_duplicates(subset=['timestamp'])
-        print(len(data))
 
-        client = MongoDbClientHistory( symbol )
         all_datas = []
         for index, row in data.iterrows():
             cleanData = {
@@ -45,7 +41,7 @@ class YahooHistoricProvider():
             }
             all_datas.append(cleanData)
         all_datas.sort(key=extract_time)
-        client.insert_multiple( all_datas )
+        return all_datas
 
     async def fetch_time_delta_history(self, symbol, minutes_number):
         if symbol == 'BITCOIN':

@@ -13,7 +13,7 @@ from mplfinance.original_flavor import candlestick_ohlc
 
 from xtbapi.xtbapi_client import xtbClient
 from historicprovider.yahoo_historic_provider import YahooHistoricProvider
-from historicprovider.historic_provider import HistoricProvider
+from historicprovider.historic_manager import HistoricManager
 from historicprovider.xtb_historic_provider import XtbHistoricProvider
 import matplotlib.pyplot as plt
 
@@ -38,7 +38,7 @@ class TestHistoryProvider(unittest.TestCase):
 
         if not os.path.isfile('last_minutes_tick_history_comparison/last_minutes_history.json') or not os.path.isfile('last_minutes_tick_history_comparison/last_minutes_tick_prices.json'):
             loop = asyncio.get_event_loop()
-            historic_provider = HistoricProvider(XtbHistoricProvider(self.client))
+            historic_provider = HistoricManager(XtbHistoricProvider(self.client))
 
             loop.create_task( self.client.follow_tick_prices( ['BITCOIN']) )
             loop.run_until_complete( asyncio.sleep( 650 ) )

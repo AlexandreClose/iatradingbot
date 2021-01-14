@@ -35,11 +35,12 @@ class MongoDbClient():
         self.col.remove()
 
     def insert_multiple(self, bulk_data):
-        try:
-            x = self.col.insert_many(bulk_data, ordered=False)
-            return (x.inserted_ids)
-        except BulkWriteError as err:
-            log.error( err )
+        if bulk_data:
+            try:
+                x = self.col.insert_many(bulk_data, ordered=False)
+                return (x.inserted_ids)
+            except BulkWriteError as err:
+                log.error( err )
 
     def find(self, data=None, sort=None ):
         if data is not None:
@@ -48,4 +49,9 @@ class MongoDbClient():
             datas = self.col.find()
         if sort is not None:
             datas = datas.sort( sort )
-        return datas
+        return list(datas)
+
+    def last(self ):
+        return self.col.find_one(
+            sort=[( '_id', pymongo.DESCENDING )]
+        )

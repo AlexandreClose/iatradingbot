@@ -389,7 +389,7 @@ class xtbClient():
 			await asyncio.sleep( 8 ) # wait 8 sec for sending ping again
 
 	async def get_chart_range_request(self,timestart,timeend,period,symbol):
-		command = {"command": "getChartRangeRequest","arguments": {"info": {"end": timeend,"period": period.value,"start": timestart,"symbol": symbol,"ticks": 0}}}
+		command = {"command": "getChartRangeRequest","arguments": {"info": {"end": timeend*1000,"period": period.value,"start": timestart*1000,"symbol": symbol,"ticks": 0}}}
 		response = await self._send_and_receive(command, self.ws_login)
 		response = response['returnData']['rateInfos']
 		dictHistory = {}

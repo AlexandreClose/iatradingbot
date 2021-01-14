@@ -1,8 +1,9 @@
 import matplotlib
 import pandas as pd
+import schedule
+import nest_asyncio
 
-from dao.mongodb_client_history import MongoDbClientHistory
-from historicprovider.historic_provider import HistoricProvider
+from historicprovider.historic_manager import HistoricManager
 from historicprovider.xtb_historic_provider import XtbHistoricProvider
 from historicprovider.yahoo_historic_provider import YahooHistoricProvider
 from xtbapi.xtbapi_client import *
@@ -11,40 +12,33 @@ import matplotlib.pyplot as plt
 matplotlib.use('TkAgg')
 
 
-async def mainProgram( ):
+async def mainProgram( loop ):
+
     client=xtbClient()
 
     # process login. this will launch all the websockets and permanent streams (trades, profit, ping, keep_alive)
     await client.login("11712595","TestTest123123") #totoletrader@yopmail.com
 
-    await asyncio.sleep( 1 )
+    # historic_manager=HistoricManager( loop, 'RIPPLE',XtbHistoricProvider(client) )
+    # datas = await historic_manager.get_historical_datas_updated()
+    # await historic_manager.plot_history( 'Open' )
 
-    await client.follow_tick_prices( ["BITCOIN"])
+    await client.open_buy_trade('BITCOIN',1,0,0)
+    await client.close_all_trades( )
 
-
-    await asyncio.sleep(10)
-
-    # get the last ten minutes ticks in a dict key = timestamp, value = tick
-    tick2 = await client.get_tick_prices_time_delta('BITCOIN' , minute_timedelta = 10 )
-
-
-    #clientMongo = MongoDbClientHistory('BITCOIN')
-    #clientMongo.deleteAll()
-
-    #historic_provider=HistoricProvider( XtbHistoricProvider(client),YahooHistoricProvider() )
-    #await historic_provider.fetch_and_store_max_history( 'BITCOIN' )
-
-   # datas = list(clientMongo.find())
-    #datas = pd.DataFrame.from_records(datas)
-    #datas.plot( x="ctm", y="open")
-    #plt.show()
-
+async def scheduler( ):
+    while True:
+        schedule.run_pending()
+        await asyncio.sleep(1)
 
 def main():
+
+    nest_asyncio.apply()
     # Use asyncio to run sync and async functions
     loop = asyncio.get_event_loop()
     # Performs login
-    loop.run_until_complete( mainProgram( ) ) # Performs sync call, and await result
+    loop.create_task( scheduler( ) )
+    loop.run_until_complete( mainProgram( loop ) ) # Performs sync call, and await result
     loop.run_forever()
 
 if __name__ == "__main__":
