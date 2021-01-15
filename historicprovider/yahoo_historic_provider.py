@@ -14,7 +14,7 @@ def extract_time(json):
 
 class YahooHistoricProvider():
 
-    async def fetch_max_history(self, symbol):
+    async def fetch_max_history(self, symbol, last_data = None ):
 
         if symbol == 'BITCOIN':
             symbol = 'BTC-USD'

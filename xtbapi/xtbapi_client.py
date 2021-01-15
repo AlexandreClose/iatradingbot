@@ -193,6 +193,9 @@ class xtbClient():
 			await asyncio.sleep( 0.2 ) # wait 0.2 sec for websocket not being killed by backend
 		return closed_order_ids
 
+	async def get_tick_prices(self, symbol ):
+		return self.tick_prices_dict[symbol]
+
 	async def get_tick_prices_time_delta(self, symbol, minute_timedelta = 1 ):
 		tick_prices = self.tick_prices_dict[symbol]
 		for timestamp in tick_prices.keys():
