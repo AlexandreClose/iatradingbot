@@ -21,21 +21,22 @@ async def mainProgram( loop ):
     tick_manager=TickManager.instance()
 
     await historic_manager.register_provider( XtbHistoricProvider( client ))
-    await historic_manager.register_symbol( 'BITCOIN')
+    await historic_manager.register_symbol( 'ETHEREUM')
 
 
     await tick_manager.register_client ( client )
-    await tick_manager.register_symbol( 'BITCOIN')
-
-    await historic_manager.register_symbol( 'RIPPLE')
-    await tick_manager.register_symbol( 'RIPPLE')
-
+    await tick_manager.register_symbol( 'ETHEREUM')
 
     #plot history
-    await historic_manager.plot_history( 'RIPPLE','Open' )
+    await historic_manager.plot_history( 'ETHEREUM','Open' )
+
+    await asyncio.sleep( 15 )
 
     #plot tick prices
-    await tick_manager.plot_tick_prices( 'RIPPLE','bid')
+    await tick_manager.plot_tick_prices( 'ETHEREUM','bid')
+
+
+
 
 
 async def scheduler( ):

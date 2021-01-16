@@ -26,7 +26,7 @@ class TickManager:
     async def get_tick_dataframe_updated(self, symbol ):
         datas = await self.get_tick_datas_updated( symbol )
         tick_prices = pd.DataFrame( list(datas.values()))
-        tick_prices['timestamp'] =pd.to_datetime(tick_prices.Date)
+        print( tick_prices )
         tick_prices['timestamp'] = pd.to_datetime(tick_prices['timestamp'],unit='s')
         tick_prices.set_index('timestamp', inplace = True)
         tick_prices = tick_prices.sort_index()
@@ -40,8 +40,6 @@ class TickManager:
     async def plot_tick_prices(self, symbol, label='bid' ):
         tick_prices = await self.get_tick_dataframe_updated( symbol )
         if label in tick_prices :
-            print( tick_prices[label] )
-            tick_prices.set_index('timestamp', inplace = True)
             tick_prices.plot(y=label)
             plt.show()
         else:

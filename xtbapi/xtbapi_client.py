@@ -102,6 +102,14 @@ class xtbClient():
 
 		return response
 
+	async def logout(self):
+		command = {
+			"command": "logout"
+		}
+		response = await asyncio.ensure_future( self._send_and_receive(command, self.ws_login) )
+		print(response)
+
+
 	### BUY
 	async def open_buy_trade(self, symbol, volume, stop_loss, take_profit ):
 		response = await asyncio.ensure_future(self._trade_transaction( MODES.BUY, TRANS_TYPES.OPEN, symbol, volume, stop_loss, take_profit ))
@@ -397,6 +405,7 @@ class xtbClient():
 	async def get_chart_range_request(self,timestart,timeend,period,symbol):
 		command = {"command": "getChartRangeRequest","arguments": {"info": {"end": timeend*1000,"period": period.value,"start": timestart*1000,"symbol": symbol,"ticks": 0}}}
 		response = await self._send_and_receive(command, self.ws_login)
+		print( response)
 		response = response['returnData']['rateInfos']
 		dictHistory = {}
 		for data_history in response:
