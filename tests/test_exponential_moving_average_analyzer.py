@@ -9,20 +9,30 @@ from historicprovider.xtb_historic_provider import XtbHistoricProvider
 from xtbapi.xtbapi_client import xtbClient
 
 
-class TestMovingAverageAnalyzer(unittest.TestCase):
-    def test_get_history_dataframe(self):
+class TestExponentialMovingAverageAnalyzer(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        historic_manager=HistoricManager.instance()
         client=xtbClient()
         loop = asyncio.get_event_loop()
-        loop.create_task( client.login("11712595","TestTest123123") )
-        loop.run_until_complete( asyncio.sleep(5))
-        historic_manager=HistoricManager( loop, 'BITCOIN',XtbHistoricProvider(client) )
-        exponentialMovingAverageAnalyzer = ExponentialMovingAverageAnalyzer(historic_manager)
-        compute_datas=loop.run_until_complete( exponentialMovingAverageAnalyzer.compute_exponential_moving_average( 40 ))
-        ema = compute_datas[0]
-        raw= compute_datas[1]
-        ax=ema.plot(y= 'Open', color="C1")
-        raw.plot(y='Open', color='C2', ax=ax)
+        loop.run_until_complete( client.login("11712595","TestTest123123", False))
+        loop.run_until_complete( historic_manager.register_provider( XtbHistoricProvider( client )))
+        loop.run_until_complete( historic_manager.register_symbol( 'BITCOIN'))
+
+
+    def test_plot_history_dataframe(self):
+        loop = asyncio.get_event_loop()
+        exponentialMovingAverageAnalyzer = ExponentialMovingAverageAnalyzer()
+        ema=loop.run_until_complete( exponentialMovingAverageAnalyzer.compute_exponential_moving_average( 'BITCOIN', 100 ))
+        ax = ema.plot(y= 'ema_Open', color="C1")
+        ema.plot(y='Open', color='C2', ax = ax)
         plt.show()
+
+    def test_get_zeros_historic(self):
+        loop = asyncio.get_event_loop()
+        exponentialMovingAverageAnalyzer = ExponentialMovingAverageAnalyzer()
+        ema=loop.run_until_complete( exponentialMovingAverageAnalyzer.search_zeros_with_historic( 'BITCOIN', 40 ))
 
 if __name__ == '__main__':
     unittest.main()

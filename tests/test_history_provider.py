@@ -11,6 +11,7 @@ import pandas as pd
 import matplotlib.dates as mpl_dates
 from mplfinance.original_flavor import candlestick_ohlc
 
+from tick_manager.tick_manager import TickManager
 from xtbapi.xtbapi_client import xtbClient
 from historicprovider.yahoo_historic_provider import YahooHistoricProvider
 from historicprovider.historic_manager import HistoricManager
@@ -20,16 +21,22 @@ import matplotlib.pyplot as plt
 
 class TestHistoryProvider(unittest.TestCase):
 
-    def __init__(self, *args, **kwargs):
-        super(TestHistoryProvider, self).__init__(*args, **kwargs)
-        self.client=xtbClient()
-        loop=asyncio.get_event_loop()
-        # authenticate the client with no starting of streams
-        response = loop.run_until_complete( self.client.login("11712595","TestTest123123",False) )
+    @classmethod
+    def setUpClass(cls):
+        historic_manager=HistoricManager.instance()
+        tick_manager = TickManager.instance()
+        client=xtbClient()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete( client.login("11712595","TestTest123123", False))
+        loop.run_until_complete( historic_manager.register_provider( XtbHistoricProvider( client )))
+        loop.run_until_complete( historic_manager.register_symbol( 'BITCOIN'))
+        loop.run_until_complete( tick_manager.register_client ( client ) )
+        loop.run_until_complete( tick_manager.register_symbol ( 'BITCOIN' ) )
 
-    #async def test_send_max_history(self ):
-    #    historic_provider=HistoricProvider( XtbHistoricProvider(self.client), YahooHistoricProvider() )
-    #    await historic_provider.fetch_and_store_max_history( 'BITCOIN' )
+    def test_plot_history(self):
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete( HistoricManager.instance().plot_history( 'BITCOIN') )
+
 
     def test_compare_history_tick_price(self):
 
@@ -38,12 +45,9 @@ class TestHistoryProvider(unittest.TestCase):
 
         if not os.path.isfile('last_minutes_tick_history_comparison/last_minutes_history.json') or not os.path.isfile('last_minutes_tick_history_comparison/last_minutes_tick_prices.json'):
             loop = asyncio.get_event_loop()
-            historic_provider = HistoricManager(XtbHistoricProvider(self.client))
-
-            loop.create_task( self.client.follow_tick_prices( ['BITCOIN']) )
             loop.run_until_complete( asyncio.sleep( 650 ) )
-            last_minutes_history = loop.run_until_complete( historic_provider.fetch_time_delta_history( 'BITCOIN', 10 ) )
-            last_minutes_tick_prices = loop.run_until_complete(self.client.get_tick_prices_time_delta( 'BITCOIN', 10 ))
+            last_minutes_history = loop.run_until_complete( HistoricManager.instance().fetch_time_delta_history( 'BITCOIN', 10) )
+            last_minutes_tick_prices = loop.run_until_complete(TickManager.instance().get_tick_prices_time_delta( 'BITCOIN', 10 ))
 
             with open('last_minutes_tick_history_comparison/last_minutes_history.json', 'w') as fp:
                 json.dump(last_minutes_history, fp)
@@ -57,7 +61,7 @@ class TestHistoryProvider(unittest.TestCase):
             with open('last_minutes_tick_history_comparison/last_minutes_tick_prices.json') as f:
                 last_minutes_tick_prices = json.load(f)
 
-
+        print( last_minutes_history)
         last_minutes_history = pd.DataFrame(last_minutes_history)
         last_minutes_history.set_index('Date', inplace = True)
 

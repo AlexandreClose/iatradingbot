@@ -5,12 +5,9 @@ import nest_asyncio
 
 from historicprovider.historic_manager import HistoricManager
 from historicprovider.xtb_historic_provider import XtbHistoricProvider
-from historicprovider.yahoo_historic_provider import YahooHistoricProvider
 from tick_manager.tick_manager import TickManager
 from xtbapi.xtbapi_client import *
 import matplotlib.pyplot as plt
-
-matplotlib.use('TkAgg')
 
 
 async def mainProgram( loop ):
@@ -20,13 +17,19 @@ async def mainProgram( loop ):
     # process login. this will launch all the websockets and permanent streams (trades, profit, ping, keep_alive)
     await client.login("11712595","TestTest123123") #totoletrader@yopmail.com
 
-    historic_manager=HistoricManager( loop, ['RIPPLE'], XtbHistoricProvider(client) )
-    tick_manager=TickManager( ['RIPPLE'], client )
+    historic_manager=HistoricManager.instance()
+    tick_manager=TickManager.instance()
 
-    historic_datas = await historic_manager.get_historical_datas_updated( 'RIPPLE')
+    await historic_manager.register_provider( XtbHistoricProvider( client ))
+    await historic_manager.register_symbol( 'BITCOIN')
 
-    await asyncio.sleep( 10 ) # wait 10 sec
-    ticks_datas = await tick_manager.get_tick_datas_updated( 'RIPPLE')
+
+    await tick_manager.register_client ( client )
+    await tick_manager.register_symbol( 'BITCOIN')
+
+    await historic_manager.register_symbol( 'RIPPLE')
+    await tick_manager.register_symbol( 'RIPPLE')
+
 
     #plot history
     await historic_manager.plot_history( 'RIPPLE','Open' )

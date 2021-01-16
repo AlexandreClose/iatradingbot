@@ -27,7 +27,7 @@ def configure_logger(name, log_path):
         'loggers': {
             'default': {
                 'level': 'DEBUG',
-                'handlers': ['console', 'file']
+                'handlers': ['console']
             }
         },
         'disable_existing_loggers': False

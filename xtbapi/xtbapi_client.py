@@ -194,7 +194,10 @@ class xtbClient():
 		return closed_order_ids
 
 	async def get_tick_prices(self, symbol ):
-		return self.tick_prices_dict[symbol]
+		if symbol in self.tick_prices_dict :
+			return self.tick_prices_dict[symbol]
+		else:
+			return {}
 
 	async def get_tick_prices_time_delta(self, symbol, minute_timedelta = 1 ):
 		tick_prices = self.tick_prices_dict[symbol]

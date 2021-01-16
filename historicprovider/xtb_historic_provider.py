@@ -63,8 +63,8 @@ class XtbHistoricProvider():
 
     async def fetch_time_delta_history(self, symbol, minutes_number):
         clientXtb = self.xtbClient
-        timestop = datetime.datetime.now().timestamp() * 1000  # now in millisec timestamp
-        timestart_n_minutes_earlier = timestop - datetime.timedelta(minutes=minutes_number).total_seconds() * 1000
+        timestop = datetime.datetime.now().timestamp()  # now in millisec timestamp
+        timestart_n_minutes_earlier = timestop - datetime.timedelta(minutes=minutes_number).total_seconds()
         datas_n_minute_earlier = await clientXtb.get_chart_range_request(timestart_n_minutes_earlier, timestop,
                                                                         TIME_TYPE.PERIOD_M1, symbol)
 
