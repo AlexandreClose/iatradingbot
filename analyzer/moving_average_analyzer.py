@@ -100,12 +100,11 @@ class MovingAverageAnalyzer:
 
             df=df.sort_index()
 
-            # filter on derivative
-            filter_der = df_base[(df_base['slope'].shift(-1).abs() >= 2)]
-            df=pd.merge(df, filter_der['slope'], left_index=True, right_index=True)
-            df_shift = df.shift(1)
-            print( df['cross_sign_sma_Open_lma_Open'] )
-            df = df[ df['cross_sign_sma_Open_lma_Open']!=df_shift['cross_sign_sma_Open_lma_Open']]
+        # filter on derivative
+        df_shift = df.shift(1)
+        df = df[ df['cross_sign_sma_Open_lma_Open']!=df_shift['cross_sign_sma_Open_lma_Open']]
+        df=df[df['slope'].abs() >1 ]
+        print( df['slope'])
         return df
 
     async def compute_profit(self):

@@ -49,7 +49,7 @@ class TestMovingAverageAnalyzer(unittest.TestCase):
         trading_positions['color_trading']=np.where(trading_positions['cross_sign_sma_Open_lma_Open']>0, 'green', 'red')
         print( trading_positions )
         plt.scatter(trading_positions.index, trading_positions['sma_Open'],c=trading_positions['color_trading'])
-        # ax.set_xlim(pd.Timestamp('2015-01-01'), pd.Timestamp('2016-01-01'))
+        ax.set_xlim(pd.Timestamp('2020-01-01'), pd.Timestamp('2021-01-01'))
         plt.show( ax=ax)
 
     def test_optimize (self):
