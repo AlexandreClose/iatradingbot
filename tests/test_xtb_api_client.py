@@ -23,6 +23,9 @@ class TestTweetAnalyzer(unittest.TestCase):
         loop=asyncio.get_event_loop()
         response = loop.run_until_complete( self.client.get_all_symbols( ) )
         self.assertIn('symbol',response[0].keys())
+        for symbol_data in response:
+            self.assertIn('symbol',symbol_data.keys())
+            print ( symbol_data['symbol'] )
 
 if __name__ == '__main__':
     unittest.main()

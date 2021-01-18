@@ -107,14 +107,14 @@ class xtbClient():
 			"command": "logout"
 		}
 		response = await asyncio.ensure_future( self._send_and_receive(command, self.ws_login) )
-		print(response)
 
 
 	### BUY
 	async def open_buy_trade(self, symbol, volume, stop_loss, take_profit ):
-		response = await asyncio.ensure_future(self._trade_transaction( MODES.BUY, TRANS_TYPES.OPEN, symbol, volume, stop_loss, take_profit ))
+		response = await asyncio.ensure_future( self._trade_transaction( MODES.BUY, TRANS_TYPES.OPEN, symbol, volume, stop_loss, take_profit ))
 		order_id = response['returnData']['order']
 		log.info( "[OPEN BUY] : %s", order_id )
+		await self.get_all_updated_trades( )
 		return order_id
 
 	async def open_order_buy_limit( self, symbol, volume, stop_loss, take_profit, price ):
@@ -148,13 +148,10 @@ class xtbClient():
 		log.info( "[OPEN SELL STOP] : %s", order_id )
 		return order_id
 
-	async def close_trade(self, order_id, time_limit = 0): #time_limit is infinity by default
+	async def close_trade(self, order_id, time_limit = 5): #time_limit is infinity by default
 		passed_time = 0
 		retry = True
 		while retry == True:
-			if time_limit > 0:
-				if passed_time > time_limit:
-					break
 			if order_id in self.trades:
 				trade=self.trades[order_id]
 				if 'cmd' in trade and trade['cmd'] in (0,1):
@@ -176,11 +173,17 @@ class xtbClient():
 				if 'errorCode' not in response:
 					order_id = response['returnData']['order']
 					log.info( "[CLOSE TRADE] : %s", order_id )
+					return order_id
 				else:
-					log.error("[ERROR CLOSE TRADE] " + str(order_id) )
-				return order_id
-			await asyncio.sleep( 0.2 ) # wait 200 ms for trying to close the trade
-			passed_time += 0.2
+					log.error("[ERROR CLOSE TRADE] : Retry closing order " + str(order_id) )
+					# for reload of trades
+					await self._fill_existing_trades()
+					await asyncio.sleep( 0.5 ) # wait 200 ms for trying to close the trade
+					passed_time += 0.5
+					if time_limit > 0:
+						if passed_time > time_limit:
+							retry = False
+
 
 	async def close_all_trades(self, time_limit = 0, **opt_args_filter ):
 		trades = self.trades
@@ -382,7 +385,7 @@ class xtbClient():
 				'order':response['returnData']['order'],
 				'position':response['returnData']['order'],
 				'order2':response['returnData']['order']
-			} # init trade in trade dict
+				} # init trade in trade dict
 		return response
 
 	def _check_volume(self, volume):
@@ -405,7 +408,6 @@ class xtbClient():
 	async def get_chart_range_request(self,timestart,timeend,period,symbol):
 		command = {"command": "getChartRangeRequest","arguments": {"info": {"end": timeend*1000,"period": period.value,"start": timestart*1000,"symbol": symbol,"ticks": 0}}}
 		response = await self._send_and_receive(command, self.ws_login)
-		print( response)
 		response = response['returnData']['rateInfos']
 		dictHistory = {}
 		for data_history in response:
@@ -433,7 +435,6 @@ class xtbClient():
 		await websocket.send(command)
 		while True:
 			response = await websocket.recv()
-			print(response)
 			log.debug( "[STREAM] : %s - %s", label, response )
 			response = json.loads( response )['data']
 			if timestamp:
@@ -449,7 +450,6 @@ class xtbClient():
 		await websocket.send(command)
 		while True:
 			response = await websocket.recv()
-			print(response)
 			log.debug( "[STREAM] : %s - %s", label, response )
 			response = json.loads( response )['data']
 			if response['level'] == 0 :
