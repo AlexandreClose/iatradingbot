@@ -1,5 +1,8 @@
+import datetime
+
 import numpy as np
 import pandas as pd
+from datetime import date
 
 from dao.mongodb_client_history import MongoDbClientHistory
 from historicprovider.historic_manager import HistoricManager
@@ -9,7 +12,7 @@ from logging_conf import log
 
 class MovingAverageAnalyzer:
 
-    def __init__(self, symbol, type = 'lma', small_windows_size = 2, long_windows_size = 100, optimize_sws_lws = False, enveloppe=0 ):
+    def __init__(self, symbol, type = 'lma', small_windows_size = 3, long_windows_size = 100, optimize_sws_lws = False, enveloppe=0 ):
         self.symbol = symbol
         self.type = type
         self.small_windows_size=small_windows_size
@@ -22,7 +25,7 @@ class MovingAverageAnalyzer:
         self.commission = 1
 
 
-    async def compute_exponential_moving_average(self ):
+    async def compute_exponential_moving_average(self):
         dataframe = await HistoricManager.instance().get_historical_dataframe_updated( self.symbol )
         dataframe=dataframe.resample("1D").bfill()
 
@@ -53,63 +56,90 @@ class MovingAverageAnalyzer:
 
 
 
-        sma = dataframe.rolling(window=self.small_windows_size).mean()
+        sma = dataframe.ewm(span=self.small_windows_size, adjust=False).mean()
         dataframe['sma_Open']=sma['Open']
         dataframe['sma_Close']=sma['Close']
         dataframe['sma_High']=sma['High']
         dataframe['sma_Low']=sma['Low']
         dataframe['sma_Volume']=sma['Volume']
 
+        sma_slope = pd.Series(np.gradient(dataframe['sma_Close']), dataframe.index, name='sma_slope')
+        dataframe = pd.concat([dataframe, sma_slope], axis=1)
+        dataframe['sma_slope']=dataframe['sma_slope']/dataframe['sma_Open']*100
+
+
         dataframe.interpolate()
 
         return dataframe
 
-    async def compute_trading_signals(self ):
+    async def compute_trading_signal_now(self):
+        ldf = await self.compute_trading_signals( )
+        if not ldf.empty:
+            today = date.today()
+            d1 = today.strftime("%Y-%m-%d")
+            last_signal = ldf.loc[ldf.index == d1]
+            if not last_signal.empty:
+                signal = last_signal.to_dict(orient='records')[0]
+                signal_timestamp = datetime.datetime.now().timestamp()
+                signal_datetime = datetime.datetime.now()
+                signal_type = "BUY" if signal['cross_sma_Close_lma_top_Close'] else "SELL"
+                signal = {
+                    "type" : signal_type,
+                    "Timestamp":signal_timestamp,
+                    "Date":d1,
+                    "DateTime":signal_datetime.isoformat(),
+                    "DateString":signal['DateString'],
+                    "Open":signal['Open'],
+                    "Close":signal['Close'],
+                    "High":signal['High'],
+                    "Low":signal['Low'],
+                    "Volume":signal['Volume'],
+                    "infos":signal
+                }
+                return signal
+        return None
+
+
+    async def compute_trading_signals( self ):
         df = await self.compute_exponential_moving_average( )
 
-        # filter on derivative
-        slope = pd.Series(np.gradient(df['sma_Open']), df.index, name='slope')
-        df = pd.concat([df, slope], axis=1)
-        df['slope']=df['slope']/df['sma_Open']*100
-
-        df_base = df
-
         if self.enveloppe == 0:
-            df['diff_sma_Open_lma_Open']=df['sma_Open']-df['lma_Open']
-            df['cross_sign_sma_Open_lma_Open'] = - np.sign(df['diff_sma_Open_lma_Open'].shift(1) * np.sign(df['diff_sma_Open_lma_Open']))*np.sign(df['diff_sma_Open_lma_Open'])
-            df['cross_sma_Open_lma_Open'] = np.sign(df['diff_sma_Open_lma_Open'].shift(1)) != np.sign(df['diff_sma_Open_lma_Open'])
-            df = df[(df['cross_sma_Open_lma_Open']==True)]
+            df['diff_sma_Close_lma_Close']=df['sma_Close']-df['lma_Close']
+            df['cross_sign_sma_Close_lma_Close'] = np.sign(df['diff_sma_Close_lma_Close'].shift(-1) * np.sign(df['diff_sma_Close_lma_Close']))*np.sign(df['diff_sma_Close_lma_Close'])
+            df['cross_sma_Close_lma_Close'] = - np.sign(df['diff_sma_Close_lma_Close'].shift(-1)) != np.sign(df['diff_sma_Close_lma_Close'])
+            df = df[(df['cross_sma_Close_lma_Close']==True)]
         else :
-            df['diff_sma_Open_lma_Open']=df['sma_Open']-df['lma_Open']
+            df['diff_sma_Close_lma_Close']=df['sma_Close']-df['lma_Close']
 
             df_top = df
-            df_top['diff_sma_Open_lma_top_Open']=df_top['sma_Open']-df_top['lma_top_Open']
-            df_top['cross_sign_sma_Open_lma_Open'] = - np.sign(df_top['diff_sma_Open_lma_top_Open'].shift(1) * np.sign(df_top['diff_sma_Open_lma_top_Open']))*np.sign(df_top['diff_sma_Open_lma_top_Open'])
-            df_top['cross_sma_Open_lma_top_Open'] = np.sign(df_top['diff_sma_Open_lma_top_Open'].shift(1)) != np.sign(df_top['diff_sma_Open_lma_top_Open'])
-            df_top = df_top[(df_top['cross_sma_Open_lma_top_Open']==True) ]
-            df_top = df_top[(df_top['cross_sign_sma_Open_lma_Open']>0)]
+            df_top['diff_sma_Close_lma_top_Close']=df_top['sma_Close']-df_top['lma_top_Close']
+            df_top['cross_sign_sma_Close_lma_Close'] = np.sign(df_top['diff_sma_Close_lma_top_Close'].shift(-1) * np.sign(df_top['diff_sma_Close_lma_top_Close']))*np.sign(df_top['diff_sma_Close_lma_top_Close'])
+            df_top['cross_sma_Close_lma_top_Close'] =  np.sign(df_top['diff_sma_Close_lma_top_Close'].shift(-1)) != np.sign(df_top['diff_sma_Close_lma_top_Close'])
+            df_top = df_top[(df_top['cross_sma_Close_lma_top_Close']==True) ]
+            df_top = df_top[(df_top['cross_sign_sma_Close_lma_Close']>0)]
 
             df_bottom = df
-            df_bottom['diff_sma_Open_lma_bottom_Open']=df_bottom['sma_Open']-df_bottom['lma_bottom_Open']
-            df_bottom['cross_sign_sma_Open_lma_Open'] = - np.sign(df_bottom['diff_sma_Open_lma_bottom_Open'].shift(1) * np.sign(df_bottom['diff_sma_Open_lma_bottom_Open']))*np.sign(df_bottom['diff_sma_Open_lma_bottom_Open'])
-            df_bottom['cross_sma_Open_lma_bottom_Open'] = np.sign(df_bottom['diff_sma_Open_lma_bottom_Open'].shift(1)) != np.sign(df_bottom['diff_sma_Open_lma_bottom_Open'])
-            df_bottom = df_bottom[(df_bottom['cross_sma_Open_lma_bottom_Open']==True) ]
-            df_bottom = df_bottom[(df_bottom['cross_sign_sma_Open_lma_Open']<0)]
+            df_bottom['diff_sma_Close_lma_bottom_Close']=df_bottom['sma_Close']-df_bottom['lma_bottom_Close']
+            df_bottom['cross_sign_sma_Close_lma_Close'] = np.sign(df_bottom['diff_sma_Close_lma_bottom_Close'].shift(-1) * np.sign(df_bottom['diff_sma_Close_lma_bottom_Close']))*np.sign(df_bottom['diff_sma_Close_lma_bottom_Close'])
+            df_bottom['cross_sma_Close_lma_bottom_Close'] = np.sign(df_bottom['diff_sma_Close_lma_bottom_Close'].shift(-1)) != np.sign(df_bottom['diff_sma_Close_lma_bottom_Close'])
+            df_bottom = df_bottom[(df_bottom['cross_sma_Close_lma_bottom_Close']==True) ]
+            df_bottom = df_bottom[(df_bottom['cross_sign_sma_Close_lma_Close']<0)]
             
             df = pd.concat( [ df_top,df_bottom])
 
             df=df.sort_index()
 
         # filter on derivative
-        df_shift = df.shift(1)
-        df = df[ df['cross_sign_sma_Open_lma_Open']!=df_shift['cross_sign_sma_Open_lma_Open']]
-        df=df[df['slope'].abs() >1 ]
-        print( df['slope'])
+        df=df[df['cross_sign_sma_Close_lma_Close']!=df.shift(-1)['cross_sign_sma_Close_lma_Close']]
+
+        df=df[(df['sma_slope'].abs() >1.2)]
+        df=df[df['cross_sign_sma_Close_lma_Close']!=df.shift(-1)['cross_sign_sma_Close_lma_Close']]
+
         return df
 
     async def compute_profit(self):
         df_signals = await self.compute_trading_signals( )
-        df_signals['profit'] = (df_signals['Open'].shift(-1)-df_signals['Open'])* df_signals['cross_sign_sma_Open_lma_Open'] - self.commission * 0.01*df_signals['Open'].shift(-1)
+        df_signals['profit'] = (df_signals['Close'].shift(-1)-df_signals['Close'])* df_signals['cross_sign_sma_Close_lma_Close'] - self.commission * 0.01*df_signals['Close'].shift(-1)
         sum_profit = df_signals['profit'].sum()
         return (df_signals,sum_profit)
 

@@ -1,6 +1,6 @@
 import datetime
 
-from xtbapi.xtbapi_client import *
+from trading_client.trading_client import *
 
 def extract_time(json):
     try:
@@ -10,12 +10,12 @@ def extract_time(json):
 
 class XtbHistoricProvider():
 
-    def __init__(self, xtbClient):
-        self.xtbClient = xtbClient
+    def __init__(self, trading_client):
+        self.trading_client = trading_client
 
 
     async def fetch_max_history( self, symbol, last_data = None ):
-        clientXtb=self.xtbClient
+        trading_client=self.trading_client
 
         timestop=datetime.datetime.now().timestamp()
         datas_1_month_earlier={}
@@ -32,25 +32,25 @@ class XtbHistoricProvider():
         if last_data is not None:
             last_data_timestamp = last_data['Date']
             if last_data_timestamp >= timestart_1_month_earlier:
-                datas_1_month_earlier=await clientXtb.get_chart_range_request( last_data_timestamp, timestop, TIME_TYPE.PERIOD_M1, symbol)
+                datas_1_month_earlier=await trading_client.get_chart_range_request( last_data_timestamp, timestop, TIME_TYPE.PERIOD_M1, symbol)
             elif last_data_timestamp >= timestart_7_month_earlier:
-                datas_1_month_earlier=await clientXtb.get_chart_range_request( timestart_1_month_earlier, timestop, TIME_TYPE.PERIOD_M1, symbol)
-                datas_7_month_earlier=await clientXtb.get_chart_range_request( last_data_timestamp, timestop, TIME_TYPE.PERIOD_M30, symbol)
+                datas_1_month_earlier=await trading_client.get_chart_range_request( timestart_1_month_earlier, timestop, TIME_TYPE.PERIOD_M1, symbol)
+                datas_7_month_earlier=await trading_client.get_chart_range_request( last_data_timestamp, timestop, TIME_TYPE.PERIOD_M30, symbol)
             elif last_data_timestamp >= timestart_13_month_earlier:
-                datas_1_month_earlier=await clientXtb.get_chart_range_request( timestart_1_month_earlier, timestop, TIME_TYPE.PERIOD_M1, symbol)
-                datas_7_month_earlier=await clientXtb.get_chart_range_request( timestart_7_month_earlier, timestop, TIME_TYPE.PERIOD_M30, symbol)
-                datas_13_month_earlier=await clientXtb.get_chart_range_request( last_data_timestamp, timestop, TIME_TYPE.PERIOD_H4, symbol)
+                datas_1_month_earlier=await trading_client.get_chart_range_request( timestart_1_month_earlier, timestop, TIME_TYPE.PERIOD_M1, symbol)
+                datas_7_month_earlier=await trading_client.get_chart_range_request( timestart_7_month_earlier, timestop, TIME_TYPE.PERIOD_M30, symbol)
+                datas_13_month_earlier=await trading_client.get_chart_range_request( last_data_timestamp, timestop, TIME_TYPE.PERIOD_H4, symbol)
             else:
-                datas_1_month_earlier=await clientXtb.get_chart_range_request( timestart_1_month_earlier, timestop, TIME_TYPE.PERIOD_M1, symbol)
-                datas_7_month_earlier=await clientXtb.get_chart_range_request( timestart_7_month_earlier, timestop, TIME_TYPE.PERIOD_M30, symbol)
-                datas_13_month_earlier=await clientXtb.get_chart_range_request( timestart_13_month_earlier, timestop, TIME_TYPE.PERIOD_H4, symbol)
-                datas_max_month_earlier=await clientXtb.get_chart_range_request( timestart_max_month_earlier, timestop, TIME_TYPE.PERIOD_D1, symbol)
+                datas_1_month_earlier=await trading_client.get_chart_range_request( timestart_1_month_earlier, timestop, TIME_TYPE.PERIOD_M1, symbol)
+                datas_7_month_earlier=await trading_client.get_chart_range_request( timestart_7_month_earlier, timestop, TIME_TYPE.PERIOD_M30, symbol)
+                datas_13_month_earlier=await trading_client.get_chart_range_request( timestart_13_month_earlier, timestop, TIME_TYPE.PERIOD_H4, symbol)
+                datas_max_month_earlier=await trading_client.get_chart_range_request( timestart_max_month_earlier, timestop, TIME_TYPE.PERIOD_D1, symbol)
             all_datas = list(datas_1_month_earlier.values()) + list(datas_7_month_earlier.values()) + list(datas_13_month_earlier.values()) + list(datas_max_month_earlier.values())
         else:
-            datas_1_month_earlier=await clientXtb.get_chart_range_request( timestart_1_month_earlier, timestop, TIME_TYPE.PERIOD_M1, symbol)
-            datas_7_month_earlier=await clientXtb.get_chart_range_request( timestart_7_month_earlier, timestop, TIME_TYPE.PERIOD_M30, symbol)
-            datas_13_month_earlier=await clientXtb.get_chart_range_request( timestart_13_month_earlier, timestop, TIME_TYPE.PERIOD_H4, symbol)
-            datas_max_month_earlier=await clientXtb.get_chart_range_request( timestart_max_month_earlier, timestop, TIME_TYPE.PERIOD_D1, symbol)
+            datas_1_month_earlier=await trading_client.get_chart_range_request( timestart_1_month_earlier, timestop, TIME_TYPE.PERIOD_M1, symbol)
+            datas_7_month_earlier=await trading_client.get_chart_range_request( timestart_7_month_earlier, timestop, TIME_TYPE.PERIOD_M30, symbol)
+            datas_13_month_earlier=await trading_client.get_chart_range_request( timestart_13_month_earlier, timestop, TIME_TYPE.PERIOD_H4, symbol)
+            datas_max_month_earlier=await trading_client.get_chart_range_request( timestart_max_month_earlier, timestop, TIME_TYPE.PERIOD_D1, symbol)
             all_datas = list(datas_1_month_earlier.values()) + list(datas_7_month_earlier.values()) + list(datas_13_month_earlier.values()) + list(datas_max_month_earlier.values())
 
         all_datas.sort( key = extract_time)
@@ -62,7 +62,7 @@ class XtbHistoricProvider():
         return all_datas_dm
 
     async def fetch_time_delta_history(self, symbol, minutes_number):
-        clientXtb = self.xtbClient
+        clientXtb = self.trading_client
         timestop = datetime.datetime.now().timestamp()  # now in millisec timestamp
         timestart_n_minutes_earlier = timestop - datetime.timedelta(minutes=minutes_number).total_seconds()
         datas_n_minute_earlier = await clientXtb.get_chart_range_request(timestart_n_minutes_earlier, timestop,

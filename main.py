@@ -1,17 +1,19 @@
+import asyncio
+
 import nest_asyncio
 import schedule
 
 from historicprovider.historic_manager import HistoricManager
 from historicprovider.xtb_historic_provider import XtbHistoricProvider
 from tick_manager.tick_manager import TickManager
-from xtbapi.xtbapi_client import *
+from trading_client.trading_client import TradingClient
 
 
 async def mainProgram(loop):
-    client = xtbClient()
+    client = TradingClient()
 
     # process login. this will launch all the websockets and permanent streams (trades, profit, ping, keep_alive)
-    await client.login("11712595", "TestTest123123")  # totoletrader@yopmail.com
+    await client.login("11769869", "TestTest123123")  # totoletrader@yopmail.com
 
     historic_manager = HistoricManager.instance()
     tick_manager = TickManager.instance()
@@ -22,9 +24,6 @@ async def mainProgram(loop):
     await tick_manager.register_client(client)
     await tick_manager.register_symbol('ETHEREUM')
 
-    await client.open_buy_trade( 'ETHEREUM', 1, 0 ,0)
-    await client.close_all_trades()
-    await client.get_all_updated_trades( )
 
 
 async def scheduler():

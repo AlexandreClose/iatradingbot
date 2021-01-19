@@ -2,6 +2,8 @@ import asyncio
 
 import pandas as pd
 import matplotlib.pyplot as plt
+
+from historicprovider.xtb_historic_provider import XtbHistoricProvider
 from logging_conf import log
 
 from dao.mongodb_client_history import MongoDbClientHistory
@@ -27,11 +29,12 @@ class HistoricManager( ):
         self.providers.append(provider)
 
     async def register_symbol(self, symbol ):
-        self.symbols.append( symbol )
-        self.clientMongos[symbol]=MongoDbClientHistory( symbol )
-        await self.fetch_and_store_max_history( )
-        asyncio.create_task(self.fetch_and_store_max_history_loop( ))
-        self.historical_datas[symbol]=[]
+        if symbol not in self.symbols:
+            self.symbols.append( symbol )
+            self.clientMongos[symbol]=MongoDbClientHistory( symbol )
+            await self.fetch_and_store_max_history( )
+            asyncio.create_task(self.fetch_and_store_max_history_loop( ))
+            self.historical_datas[symbol]=[]
 
     async def get_historical_datas_updated(self, symbol ):
         if not self.historical_datas[symbol]:
@@ -40,11 +43,11 @@ class HistoricManager( ):
 
     async def get_historical_dataframe_updated(self, symbol ):
         datas = await self.get_historical_datas_updated( symbol )
-        dataframe = pd.DataFrame( datas )
-        dataframe['Date'] = pd.to_datetime(dataframe['Date'],unit='s')
-        dataframe.set_index('Date', inplace = True)
-        dataframe = dataframe.sort_index()
-        return dataframe
+        df = pd.DataFrame( datas )
+        df['Date'] = pd.to_datetime(df['Date'],unit='s')
+        df.set_index('Date', inplace = True)
+        df = df.sort_index()
+        return df
 
     async def fetch_and_store_max_history_loop(self ):
         while True:
@@ -76,5 +79,3 @@ class HistoricManager( ):
         for provider in self.providers:
             datas += await provider.fetch_time_delta_history( symbol, minutes_number )
         return datas
-
-

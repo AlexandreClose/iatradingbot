@@ -40,9 +40,7 @@ class TIME_TYPE(enum.Enum):
 	PERIOD_W1 = 10080
 	PERIOD_MN1 = 43200
 
-
-class xtbClient():
-
+class TradingClient():
 
 	def __init__(self):
 		self.stream_session_id=None

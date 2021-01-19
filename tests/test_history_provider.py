@@ -12,7 +12,7 @@ import matplotlib.dates as mpl_dates
 from mplfinance.original_flavor import candlestick_ohlc
 
 from tick_manager.tick_manager import TickManager
-from xtbapi.xtbapi_client import xtbClient
+from trading_client.trading_client import TradingClient
 from historicprovider.yahoo_historic_provider import YahooHistoricProvider
 from historicprovider.historic_manager import HistoricManager
 from historicprovider.xtb_historic_provider import XtbHistoricProvider
@@ -25,7 +25,7 @@ class TestHistoryProvider(unittest.TestCase):
     def setUpClass(cls):
         historic_manager=HistoricManager.instance()
         tick_manager = TickManager.instance()
-        client=xtbClient()
+        client=TradingClient()
         loop = asyncio.get_event_loop()
         loop.run_until_complete( client.login("11712595","TestTest123123", False))
         loop.run_until_complete( historic_manager.register_provider( XtbHistoricProvider( client )))
