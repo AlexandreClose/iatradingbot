@@ -1,7 +1,7 @@
 import asyncio
 import unittest
 from logging_conf import log
-from historicprovider.yahoo_historic_provider import YahooHistoricProvider
+from historicprovider.yahoo_historic_provider import YahooHistoricProvider, yahoo_historic_provider
 
 
 class TestYahooFinance(unittest.TestCase):
@@ -11,7 +11,7 @@ class TestYahooFinance(unittest.TestCase):
 
     def test_send_max_history(self ):
         loop = asyncio.get_event_loop()
-        yahoo_finance = YahooHistoricProvider()
+        yahoo_finance = yahoo_historic_provider
         datas = loop.run_until_complete( yahoo_finance.fetch_max_history( 'DASH') )
         log.info( '[YAHOO] : Fetch %s historic data',len(datas))
         self.assertGreater( len(datas), 0)

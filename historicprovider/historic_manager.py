@@ -3,7 +3,7 @@ import asyncio
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from historicprovider.xtb_historic_provider import XtbHistoricProvider
+from historicprovider.xtb_historic_provider import  xtb_historic_provider
 from logging_conf import log
 
 from dao.mongodb_client_history import MongoDbClientHistory
@@ -22,7 +22,7 @@ class HistoricManager( ):
         self.datas = []
         self.symbols = []
         self.clientMongos = { }
-        self.providers=[]
+        self.providers=[ xtb_historic_provider ]
         self.historical_datas ={}
 
     async def register_provider(self, provider ):
@@ -79,3 +79,5 @@ class HistoricManager( ):
         for provider in self.providers:
             datas += await provider.fetch_time_delta_history( symbol, minutes_number )
         return datas
+
+historic_manager = HistoricManager.instance()

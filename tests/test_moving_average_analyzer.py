@@ -1,17 +1,13 @@
 import asyncio
 import unittest
 
+import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-
-from logging_conf import log
 
 from analyzer.moving_average_analyzer import MovingAverageAnalyzer
-import matplotlib.pyplot as plt
-
-from historicprovider.historic_manager import HistoricManager
-from historicprovider.xtb_historic_provider import XtbHistoricProvider
-from trading_client.trading_client import TradingClient
+from historicprovider.historic_manager import historic_manager
+from logging_conf import log
+from trading_client.trading_client import trading_client
 
 
 class TestMovingAverageAnalyzer(unittest.TestCase):
@@ -20,11 +16,8 @@ class TestMovingAverageAnalyzer(unittest.TestCase):
         super(TestMovingAverageAnalyzer, self).__init__(*args, **kwargs)
         self.symbol = 'BITCOIN'
         self.movingAverageAnalyzer= MovingAverageAnalyzer( self.symbol, 'ema', 5, 140, False,2)
-        historic_manager=HistoricManager.instance()
-        client=TradingClient()
         loop = asyncio.get_event_loop()
-        loop.run_until_complete( client.login("11712595","TestTest123123", False))
-        loop.run_until_complete( historic_manager.register_provider( XtbHistoricProvider( client )))
+        loop.run_until_complete( trading_client.login("11712595","TestTest123123", False))
         loop.run_until_complete( historic_manager.register_symbol( self.symbol))
 
     def test_plot_history_dataframe(self):
@@ -36,7 +29,7 @@ class TestMovingAverageAnalyzer(unittest.TestCase):
 
     def test_compute_exponential_moving_average_last(self):
         loop = asyncio.get_event_loop()
-        df=loop.run_until_complete( self.movingAverageAnalyzer.compute_exponential_moving_average( only_on_last = True) )
+        df=loop.run_until_complete( self.movingAverageAnalyzer.compute_exponential_moving_average( ) )
         log.info( '[EMA] : Last computation')
         print ( df )
         log.info( '[EMA] : Size last computation : %s', len(df))

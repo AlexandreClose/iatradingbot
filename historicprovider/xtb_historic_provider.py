@@ -1,6 +1,9 @@
 import datetime
 
-from trading_client.trading_client import *
+from trading_client.trading_client import trading_client
+from utils.singleton import Singleton
+from trading_client.trading_client_enums import *
+
 
 def extract_time(json):
     try:
@@ -8,9 +11,10 @@ def extract_time(json):
     except KeyError:
         return 0
 
-class XtbHistoricProvider():
+@Singleton
+class XtbHistoricProvider:
 
-    def __init__(self, trading_client):
+    def __init__(self ):
         self.trading_client = trading_client
 
 
@@ -86,3 +90,4 @@ class XtbHistoricProvider():
             "Volume":raw_data['vol']
         }
 
+xtb_historic_provider = XtbHistoricProvider.instance()

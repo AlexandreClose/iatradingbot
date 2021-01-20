@@ -4,6 +4,7 @@ import pandas as pd
 import yfinance as yf
 
 from dao.mongodb_client_history import MongoDbClientHistory
+from utils.singleton import Singleton
 
 
 def extract_time(json):
@@ -12,6 +13,7 @@ def extract_time(json):
     except KeyError:
         return 0
 
+@Singleton
 class YahooHistoricProvider():
 
     async def fetch_max_history(self, symbol, last_data = None ):
@@ -74,5 +76,4 @@ class YahooHistoricProvider():
 
         return all_datas
 
-
-
+yahoo_historic_provider=YahooHistoricProvider.instance()

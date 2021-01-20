@@ -1,13 +1,13 @@
 import asyncio
 import unittest
-from trading_client.trading_client import TradingClient
+from trading_client.trading_client import TradingClient, trading_client
 
 
 class TestTweetAnalyzer(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestTweetAnalyzer, self).__init__(*args, **kwargs)
-        self.client=TradingClient()
+        self.client=trading_client
         loop=asyncio.get_event_loop()
         # authenticate the client with no starting of streams
         response = loop.run_until_complete( self.client.login("11712595","TestTest123123",False) )

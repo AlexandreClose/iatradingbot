@@ -3,7 +3,7 @@ import asyncio
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from trading_client.trading_client import TradingClient
+from trading_client.trading_client import trading_client
 from utils.singleton import Singleton
 from logging_conf import log
 
@@ -12,9 +12,6 @@ from logging_conf import log
 class TickManager:
     def __init__(self ):
         self.symbols = []
-        self.trading_client = None
-
-    async def register_client(self, trading_client):
         self.trading_client = trading_client
 
     async def register_symbol(self, symbol):
@@ -50,3 +47,5 @@ class TickManager:
             plt.show()
         else:
             log.error( '[TICK_MANAGER] : %s not in tick dataframe', label )
+
+tick_manager = TickManager.instance()

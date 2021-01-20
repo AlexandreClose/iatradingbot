@@ -151,7 +151,7 @@ class MovingAverageAnalyzer:
         trading_signals_max_profit = None
         for sws in range( 1,4 ):
             log.info( '[EMA] Optimization iter with sws : %s', sws)
-            for lws in range ( 80, 150 ):
+            for lws in range ( 80, 120 ):
                 for enveloppe in range( 1, 2 ):
                     self.enveloppe = enveloppe
                     self.small_windows_size = sws

@@ -1,10 +1,13 @@
 import datetime
-import enum
 import time
 import websockets
 import json
 from logging_conf import log
 import asyncio
+
+from trading_client.trading_client_enums import *
+from utils.singleton import Singleton
+
 
 def extract_time(json):
     try:
@@ -12,34 +15,7 @@ def extract_time(json):
     except KeyError:
         return 0
 
-class MODES(enum.Enum):
-	BUY = 0
-	SELL = 1
-	BUY_LIMIT = 2
-	SELL_LIMIT = 3
-	BUY_STOP = 4
-	SELL_STOP = 5
-	BALANCE = 6
-	CREDIT = 7
-
-class TRANS_TYPES(enum.Enum):
-	OPEN = 0
-	PENDING = 1
-	CLOSE = 2
-	MODIFY = 3
-	DELETE = 4
-
-class TIME_TYPE(enum.Enum):
-	PERIOD_M1 = 1
-	PERIOD_M5 = 5
-	PERIOD_M15 = 15
-	PERIOD_M30 = 30
-	PERIOD_H1 = 60
-	PERIOD_H4 = 240
-	PERIOD_D1 = 1440
-	PERIOD_W1 = 10080
-	PERIOD_MN1 = 43200
-
+@Singleton
 class TradingClient():
 
 	def __init__(self):
@@ -432,15 +408,18 @@ class TradingClient():
 		log.info( "[COMMAND] : %s - %s", label, command )
 		await websocket.send(command)
 		while True:
-			response = await websocket.recv()
-			log.debug( "[STREAM] : %s - %s", label, response )
-			response = json.loads( response )['data']
-			if timestamp:
-				response['timestamp']=time.time()
-			if timestamp_as_key:
-				resp_array[response['timestamp']]=response
-			else:
-				resp_array.append( response )
+			try :
+				response = await websocket.recv()
+				log.debug( "[STREAM] : %s - %s", label, response )
+				response = json.loads( response )['data']
+				if timestamp:
+					response['timestamp']=time.time()
+				if timestamp_as_key:
+					resp_array[response['timestamp']]=response
+				else:
+					resp_array.append( response )
+			except Exception as er:
+				log.error( er )
 
 	async def _send_and_receive_ticks_stream(self, json_command, label, websocket, resp_array ):
 		command = json.dumps(json_command)
@@ -458,3 +437,4 @@ class TradingClient():
 		self.trades = {k: v for k, v in self.trades.items() if v['closed'] == False}
 		self.trades = {k: v for k, v in self.trades.items() if v['state'] != 'Deleted'}
 
+trading_client = TradingClient.instance()
