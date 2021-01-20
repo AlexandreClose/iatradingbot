@@ -1,5 +1,5 @@
-from historicprovider.historic_manager import HistoricManager
-from tick_manager.tick_manager import TickManager
+from manager.historic_manager import HistoricManager
+from manager.tick_manager import TickManager
 from utils.singleton import Singleton
 
 @Singleton

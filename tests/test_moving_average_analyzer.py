@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from analyzer.moving_average_analyzer import MovingAverageAnalyzer
-from historicprovider.historic_manager import historic_manager
+from manager.historic_manager import historic_manager
 from logging_conf import log
 from trading_client.trading_client import trading_client
 
@@ -14,8 +14,8 @@ class TestMovingAverageAnalyzer(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestMovingAverageAnalyzer, self).__init__(*args, **kwargs)
-        self.symbol = 'BITCOIN'
-        self.movingAverageAnalyzer= MovingAverageAnalyzer( self.symbol, 'ema', 5, 140, False,2)
+        self.symbol = 'AMZN.US_9'
+        self.movingAverageAnalyzer= MovingAverageAnalyzer( self.symbol, 'ema', 5, 140, False,5)
         loop = asyncio.get_event_loop()
         loop.run_until_complete( trading_client.login("11712595","TestTest123123", False))
         loop.run_until_complete( historic_manager.register_symbol( self.symbol))
@@ -60,7 +60,7 @@ class TestMovingAverageAnalyzer(unittest.TestCase):
         trading_positions['color_trading']=np.where(trading_positions['cross_sign_sma_Close_lma_Close']>0, 'green', 'red')
         print( trading_positions )
         plt.scatter(trading_positions.index, trading_positions['sma_Close'],c=trading_positions['color_trading'])
-        # ax.set_xlim(pd.Timestamp('2018-01-01'), pd.Timestamp('2020-01-01'))
+        # ax.set_xlim(pd.Timestamp('2018-01-01'), pd.Timestamp('2019-01-01'))
         plt.show( ax=ax)
 
     def test_optimize (self):

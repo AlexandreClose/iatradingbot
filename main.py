@@ -1,21 +1,16 @@
 import asyncio
-import threading
 
 from flask import Flask
 import nest_asyncio
 import schedule
-from gevent import thread
 
-from historicprovider.historic_manager import HistoricManager
-from historicprovider.xtb_historic_provider import XtbHistoricProvider
-from symbol_manager.symbol_manager import symbol_manager
-from tick_manager.tick_manager import TickManager
-from trading_client.trading_client import TradingClient, trading_client
+from manager.symbol_manager import symbol_manager
+from trading_client.trading_client import trading_client
 
 
 async def mainProgram():
     # process login. this will launch all the websockets and permanent streams (trades, profit, ping, keep_alive)
-    await trading_client.login("11769869", "TestTest123123")  # totoletrader@yopmail.com
+    await trading_client.login("11769869", "TestTest123123")  # totoletrader2@yopmail.com
 
     await symbol_manager.register_symbol( 'ETHEREUM')
 
@@ -41,5 +36,5 @@ def main():
 
 
 if __name__ == "__main__":
-    threading.Thread(target=run_flask, args=()).start()
+    # threading.Thread(target=run_flask, args=()).start()
     main()

@@ -4,8 +4,7 @@ import numpy as np
 import pandas as pd
 from datetime import date
 
-from dao.mongodb_client_history import MongoDbClientHistory
-from historicprovider.historic_manager import HistoricManager
+from manager.historic_manager import HistoricManager
 from logging_conf import log
 
 
@@ -18,14 +17,18 @@ class MovingAverageAnalyzer:
         self.small_windows_size=small_windows_size
         self.long_windows_size = long_windows_size
         self.enveloppe=enveloppe
-        if optimize_sws_lws:
-            (sws_max_profit, lws_max_profit, max_profit ) = self.optimize_windows_size( symbol )
-            self.small_windows_size = sws_max_profit
-            self.long_windows_size = lws_max_profit
         self.commission = 1
+        self.optimize_sws_lws = optimize_sws_lws
 
 
     async def compute_exponential_moving_average(self):
+
+        if self.optimize_sws_lws:
+            (trading_signals_max_profit,sws_max_profit, lws_max_profit, enveloppe, max_profit ) = self.optimize( )
+            self.small_windows_size = sws_max_profit
+            self.long_windows_size = lws_max_profit
+            self.enveloppe = enveloppe
+
         dataframe = await HistoricManager.instance().get_historical_dataframe_updated( self.symbol )
         dataframe=dataframe.resample("1D").bfill()
 

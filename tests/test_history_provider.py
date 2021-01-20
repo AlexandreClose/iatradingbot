@@ -1,22 +1,14 @@
 import asyncio
 import os
-import time
 import json
 import unittest
-from collections import OrderedDict
 
-import matplotlib.pyplot as plt
-import mplfinance as mpf
 import pandas as pd
-import matplotlib.dates as mpl_dates
-from mplfinance.original_flavor import candlestick_ohlc
 
-from symbol_manager.symbol_manager import symbol_manager
-from tick_manager.tick_manager import TickManager
-from trading_client.trading_client import TradingClient, trading_client
-from historicprovider.yahoo_historic_provider import YahooHistoricProvider
-from historicprovider.historic_manager import HistoricManager
-from historicprovider.xtb_historic_provider import XtbHistoricProvider
+from manager.symbol_manager import symbol_manager
+from manager.tick_manager import TickManager
+from trading_client.trading_client import trading_client
+from manager.historic_manager import HistoricManager
 import matplotlib.pyplot as plt
 
 

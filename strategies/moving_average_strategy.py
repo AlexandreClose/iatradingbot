@@ -3,7 +3,8 @@ import datetime
 import enum
 
 from analyzer.moving_average_analyzer import MovingAverageAnalyzer
-from tick_manager.tick_manager import TickManager
+from strategies.base_strategy import BaseStrategy
+from manager.tick_manager import TickManager
 from trading_client.trading_client import TradingClient
 
 class MODE_SELL(enum.Enum):
@@ -11,10 +12,10 @@ class MODE_SELL(enum.Enum):
     TAKE_SHORT = 1
 
 
-class MovingAverageStrategy:
+class MovingAverageStrategy(BaseStrategy):
 
-    def __init__(self, client, symbol, n_currencies,*args, **kwargs ):
-        super(MovingAverageStrategy, self).__init__(client, symbol, n_currencies,*args, **kwargs)
+    def __init__(self, symbol, n_currencies):
+        super(MovingAverageStrategy, self).__init__( symbol, n_currencies)
         self.movingAverageAnalyzer= MovingAverageAnalyzer( self.symbol, 'ema', 5, 140, True,2)
 
     async def _compute_signal(self ):

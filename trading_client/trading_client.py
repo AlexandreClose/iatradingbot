@@ -55,10 +55,9 @@ class TradingClient():
 		assert response['status']==True
 		self.stream_session_id = response['streamSessionId']
 		log.info( "[LOGIN] : Success. Session open on XTB with stream session id %s", self.stream_session_id )
+		await asyncio.ensure_future( self._fill_existing_trades())
 
 		if run_stream:
-			# get all existing trades with sync call
-			await self._fill_existing_trades()
 
 			loop = asyncio.get_event_loop()
 			# track all balances with stream
@@ -201,8 +200,12 @@ class TradingClient():
 				symbol = opt_args_filter['symbol']
 				if symbol is not None:
 					trades = dict((k, v) for (k, v) in trades.items() if 'symbol' in v and v['symbol'] == symbol)
-		trades = dict((k, v) for (k, v) in trades.items() if 'state' in v and v['state'] != 'Deleted')
+		trades = dict((k, v) for (k, v) in trades.items() if ('state' in v and v['state'] != 'Deleted') or ('state' not in v))
 		return trades
+
+	async def get_last_updated_balance(self, **opt_args_filter ):
+		balances = self.balances
+		return balances[-1]
 
 	async def get_symbol(self, symbol):
 		command = {
