@@ -35,4 +35,4 @@ def configure_logger(name, log_path):
     return logging.getLogger(name)
 
 
-log = configure_logger('default', 'logs/logfile.txt')
+log = configure_logger('default', 'logfile.txt')
