@@ -18,6 +18,7 @@ __pycache__/
 ### Logs
 *.log*
 logs/*
+tests/logs/*
 
 ### other files
 .DS_Store
