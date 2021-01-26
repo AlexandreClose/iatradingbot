@@ -19,6 +19,11 @@ class TickManager:
             self.symbols.append( symbol )
             asyncio.create_task(self.trading_client.follow_tick_prices(self.symbols))
 
+    async def unregister_symbol(self, symbol ):
+        if symbol in self.symbols:
+            self.symbols.remove( symbol )
+            asyncio.create_task(self.trading_client.follow_tick_prices(self.symbols))
+
     async def get_tick_datas_updated(self, symbol ):
         return await self.trading_client.get_tick_prices(symbol)
 

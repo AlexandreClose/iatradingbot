@@ -10,14 +10,14 @@ class TestTweetAnalyzer(unittest.TestCase):
         self.client=trading_client
         loop=asyncio.get_event_loop()
         # authenticate the client with no starting of streams
-        response = loop.run_until_complete( self.client.login("11712595","TestTest123123",False) )
+        response = loop.run_until_complete( self.client.login("11769869", "TestTest123123",False) )
         self.assertTrue(response['status'])
 
     def test_get_symbol(self ):
         loop=asyncio.get_event_loop()
         response = loop.run_until_complete( self.client.get_symbol( 'BITCOIN') )
         print( response )
-        self.assertEqual(response['symbol'],'BITCOIN')
+        self.assertEqual(response['symbol'], 'BITCOIN')
 
     def test_get_all_symbol(self ):
         loop=asyncio.get_event_loop()

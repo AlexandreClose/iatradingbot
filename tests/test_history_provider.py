@@ -17,7 +17,7 @@ class TestHistoryProvider(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         loop = asyncio.get_event_loop()
-        loop.run_until_complete( trading_client.login("11712595","TestTest123123", False))
+        loop.run_until_complete( trading_client.login("11769869","TestTest123123", False))
         loop.run_until_complete( symbol_manager.register_symbol( 'ETHEREUM'))
 
 

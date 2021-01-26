@@ -135,7 +135,7 @@ class MovingAverageAnalyzer:
         # filter on derivative
         df=df[df['cross_sign_sma_Close_lma_Close']!=df.shift(-1)['cross_sign_sma_Close_lma_Close']]
 
-        df=df[(df['sma_slope'].abs() >1.2)]
+        df=df[(df['sma_slope'].abs() >=0)]
         df=df[df['cross_sign_sma_Close_lma_Close']!=df.shift(-1)['cross_sign_sma_Close_lma_Close']]
 
         return df

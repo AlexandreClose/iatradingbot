@@ -15,4 +15,10 @@ class SymbolManager:
 
             self.symbols.append( symbol )
 
+    async def unregister_symbol(self, symbol ):
+        if symbol in self.symbols:
+            await HistoricManager.instance().unregister_symbol( symbol)
+            await TickManager.instance().unregister_symbol( symbol )
+            self.symbols.remove( symbol )
+
 symbol_manager = SymbolManager.instance()

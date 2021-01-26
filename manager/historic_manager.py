@@ -29,12 +29,19 @@ class HistoricManager( ):
         self.providers.append(provider)
 
     async def register_symbol(self, symbol ):
+        if not self.symbols:
+            asyncio.create_task(self.fetch_and_store_max_history_loop( ))
+
         if symbol not in self.symbols:
             self.symbols.append( symbol )
             self.clientMongos[symbol]=MongoDbClientHistory( symbol )
-            await self.fetch_and_store_max_history( )
-            asyncio.create_task(self.fetch_and_store_max_history_loop( ))
             self.historical_datas[symbol]=[]
+
+    async def unregister_symbol(self, symbol ):
+        if symbol in self.symbols: self.symbols.remove( symbol )
+        if symbol in self.clientMongos: del self.clientMongos[ symbol ]
+        if symbol in self.historical_datas: del self.historical_datas[ symbol ]
+
 
     async def get_historical_datas_updated(self, symbol ):
         if not self.historical_datas[symbol]:
@@ -50,9 +57,10 @@ class HistoricManager( ):
         return df
 
     async def fetch_and_store_max_history_loop(self ):
+        await asyncio.sleep(1)
         while True:
+            await self.fetch_and_store_max_history()
             await asyncio.sleep(60)
-            await self.fetch_and_store_max_history() # this allow to fetch only last minute of history, recursively
 
     async def fetch_and_store_max_history(self ):
         for symbol in self.symbols:

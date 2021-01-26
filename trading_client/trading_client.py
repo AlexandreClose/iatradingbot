@@ -229,12 +229,16 @@ class TradingClient():
 		return response['returnData']
 
 	async def follow_tick_prices( self, symbols ):
+		# close each websockets
+		for ws in list(self.ws_stream_tick_prices_dict.values()):
+			await ws.close()
 		# clear all the followed symbols tick prices
 		self.ws_stream_tick_prices_dict.clear()
 		self.tick_prices_dict.clear()
-
+		self.followed_symbols = symbols
+		print( self.followed_symbols)
 		# follow given tick prices
-		for symbol in symbols:
+		for symbol in self.followed_symbols:
 			await self._get_tick_prices( symbol )
 
 
@@ -429,12 +433,16 @@ class TradingClient():
 		log.info( "[COMMAND] : %s - %s", label, command )
 		await websocket.send(command)
 		while True:
-			response = await websocket.recv()
-			log.debug( "[STREAM] : %s - %s", label, response )
-			response = json.loads( response )['data']
-			if response['level'] == 0 :
-				response['timestamp'] = response['timestamp']*0.001
-				resp_array[response['timestamp']]=response
+			try:
+				response = await websocket.recv()
+				log.debug( "[STREAM] : %s - %s", label, response )
+				response = json.loads( response )['data']
+				if response['level'] == 0 :
+					response['timestamp'] = response['timestamp']*0.001
+					resp_array[response['timestamp']]=response
+			except Exception as er:
+				log.error( er )
+				break
 
 	def _remove_closed_trades( self ):
 		self.trades = {k: v for k, v in self.trades.items() if v['closed'] == False}
