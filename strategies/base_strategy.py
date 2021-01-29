@@ -1,10 +1,12 @@
 import asyncio
 import datetime
 import enum
+from asyncio import CancelledError
 
 from analyzer.moving_average_analyzer import MovingAverageAnalyzer
 from manager.tick_manager import TickManager
 from trading_client.trading_client import TradingClient, trading_client, MODES
+from logging_conf import log
 
 
 class MODE_SELL(enum.Enum):
@@ -27,24 +29,38 @@ class BaseStrategy:
 
     async def _get_last_signal(self):
         dict_trades =  await self.client.get_all_updated_trades( symbol=self.symbol)
-        last_trade = list(dict_trades.values())[-1]
-        last_trade_type = last_trade['cmd']
-        last_trade_type = MODES( last_trade_type ).name
-        if last_trade_type == 'BUY' or last_trade_type == 'BUY_LIMIT' or last_trade_type == 'BUY_STOP':
-            self.last_type_signal = 'BUY'
-        elif last_trade_type == 'SELL' or last_trade_type == 'SELL_LIMIT' or last_trade_type == 'SELL_STOP':
-            self.last_type_signal = 'SELL'
+        if len(dict_trades) > 0:
+            last_trade = list(dict_trades.values())[-1]
+            last_trade_type = last_trade['cmd']
+            last_trade_type = MODES( last_trade_type ).name
+            if last_trade_type == 'BUY' or last_trade_type == 'BUY_LIMIT' or last_trade_type == 'BUY_STOP':
+                self.last_type_signal = 'BUY'
+            elif last_trade_type == 'SELL' or last_trade_type == 'SELL_LIMIT' or last_trade_type == 'SELL_STOP':
+                self.last_type_signal = 'SELL'
+        else:
+            self.last_type_signal=None
 
     async def listen(self):
         await self._get_last_signal()
-        while datetime.today().strftime('%Y-%m-%d') != self.last_date_signal: # loop if no signal is received since 1 day
-            signal = await self._compute_signal()
-            if signal:
-                    self.signals_dict[signal['Date']]=signal
-                    self.last_date_signal = signal['Date']
-                    if (self.last_type_signal != None and signal['type'] != self.last_type_signal) or (self.last_type_signal == None and signal['type']!= 'SELL'):
-                        self.react( signal )
-            await asyncio.sleep( 60 ) # wait 1 minute for fetching new signal
+        while datetime.datetime.today().strftime('%Y-%m-%d') != self.last_date_signal: # loop if no signal is received since 1 day
+            try:
+                signal = await self._compute_signal()
+                if signal == None:
+                    log.info( "[STRATEGY] MA for symbol " + self.symbol + ". NO SIGNAL RECEIVED" )
+                else:
+                    log.info( "[STRATEGY] MA for symbol " + self.symbol + ". SIGNAL : " + str(signal) )
+
+
+                if signal:
+                        self.signals_dict[signal['Date']]=signal
+                        self.last_date_signal = signal['Date']
+                        if (self.last_type_signal != None and signal['type'] != self.last_type_signal) or (self.last_type_signal == None and signal['type']!= 'SELL'):
+                            self.react( signal )
+                log.info( "[STRATEGY] MA for symbol " + self.symbol + ". WAIT FOR 60 SEC FOR NEXT SIGNAL" )
+                await asyncio.sleep( 5) # wait 1 minute for fetching new signal
+            except KeyError as e:
+                log.error( e )
+                raise CancelledError
 
     async def react(self, signal ):
         if signal['type'] == 'BUY':

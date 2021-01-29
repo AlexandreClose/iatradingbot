@@ -12,11 +12,11 @@ class MODE_SELL(enum.Enum):
     TAKE_SHORT = 1
 
 
-class MovingAverageStrategy(BaseStrategy):
+class IntradayMovingAverageStrategy(BaseStrategy):
 
     def __init__(self, symbol, n_currencies):
-        super(MovingAverageStrategy, self).__init__( symbol, n_currencies)
-        self.movingAverageAnalyzer=MovingAverageAnalyzer( self.symbol, 'ema', 1, 118,1, time_type = "daily")
+        super(IntradayMovingAverageStrategy, self).__init__( symbol, n_currencies)
+        self.movingAverageAnalyzer=MovingAverageAnalyzer( self.symbol, 'ema', 1, 118,1, 'intraday')
         self.optimized = False
 
 

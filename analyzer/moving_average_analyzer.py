@@ -11,26 +11,24 @@ from logging_conf import log
 
 class MovingAverageAnalyzer:
 
-    def __init__(self, symbol, type = 'lma', small_windows_size = 3, long_windows_size = 100, optimize_sws_lws = False, enveloppe=0 ):
+    def __init__(self, symbol, type = 'lma', small_windows_size = 3, long_windows_size = 100, enveloppe=1, time_type="daily" ):
         self.symbol = symbol
         self.type = type
         self.small_windows_size=small_windows_size
         self.long_windows_size = long_windows_size
         self.enveloppe=enveloppe
-        self.commission = 1
-        self.optimize_sws_lws = optimize_sws_lws
+        self.commission = 0
+        self.time_type = time_type
 
 
-    async def compute_exponential_moving_average(self):
+    async def compute_exponential_moving_average(self ):
+        if self.time_type == 'daily':
+            dataframe = await HistoricManager.instance().get_historical_dataframe_updated( self.symbol )
+            dataframe=dataframe.resample("1D").bfill()
 
-        if self.optimize_sws_lws:
-            (trading_signals_max_profit,sws_max_profit, lws_max_profit, enveloppe, max_profit ) = self.optimize( )
-            self.small_windows_size = sws_max_profit
-            self.long_windows_size = lws_max_profit
-            self.enveloppe = enveloppe
-
-        dataframe = await HistoricManager.instance().get_historical_dataframe_updated( self.symbol )
-        dataframe=dataframe.resample("1D").bfill()
+        if self.time_type == 'intraday':
+            dataframe = await HistoricManager.instance().get_historical_dataframe_updated( self.symbol, lastDays=29 )
+            dataframe=dataframe.resample("1Min").bfill()
 
         if self.type == 'lma':
             lma = dataframe.ewm(span=self.long_windows_size, adjust=False).mean()
@@ -109,7 +107,7 @@ class MovingAverageAnalyzer:
         if self.enveloppe == 0:
             df['diff_sma_Close_lma_Close']=df['sma_Close']-df['lma_Close']
             df['cross_sign_sma_Close_lma_Close'] = np.sign(df['diff_sma_Close_lma_Close'].shift(-1) * np.sign(df['diff_sma_Close_lma_Close']))*np.sign(df['diff_sma_Close_lma_Close'])
-            df['cross_sma_Close_lma_Close'] = - np.sign(df['diff_sma_Close_lma_Close'].shift(-1)) != np.sign(df['diff_sma_Close_lma_Close'])
+            df['cross_sma_Close_lma_Close'] = np.sign(df['diff_sma_Close_lma_Close'].shift(-1)) != np.sign(df['diff_sma_Close_lma_Close'])
             df = df[(df['cross_sma_Close_lma_Close']==True)]
         else :
             df['diff_sma_Close_lma_Close']=df['sma_Close']-df['lma_Close']
@@ -137,7 +135,8 @@ class MovingAverageAnalyzer:
 
         df=df[(df['sma_slope'].abs() >=0)]
         df=df[df['cross_sign_sma_Close_lma_Close']!=df.shift(-1)['cross_sign_sma_Close_lma_Close']]
-
+        print(df.head())
+        df = df[(df['cross_sign_sma_Close_lma_Close'] > 0).idxmax():]
         return df
 
     async def compute_profit(self):
@@ -152,27 +151,34 @@ class MovingAverageAnalyzer:
         enveloppe_max_profit = None
         max_profit = None
         trading_signals_max_profit = None
-        for sws in range( 1,4 ):
+        for sws in range( 1,2 ):
             log.info( '[EMA] Optimization iter with sws : %s', sws)
             for lws in range ( 80, 120 ):
                 for enveloppe in range( 1, 2 ):
-                    self.enveloppe = enveloppe
-                    self.small_windows_size = sws
-                    self.long_windows_size = lws
-                    (df_signals,profit) = await self.compute_profit( )
-                    if max_profit == None or profit > max_profit :
-                        max_profit = profit
-                        sws_max_profit = sws
-                        lws_max_profit = lws
-                        enveloppe_max_profit = enveloppe
-                        trading_signals_max_profit = df_signals
+                    try:
+                        self.enveloppe = enveloppe
+                        self.small_windows_size = sws
+                        self.long_windows_size = lws
+                        (df_signals,profit) = await self.compute_profit( )
+                        print (profit)
+                        if max_profit == None or profit > max_profit :
+                            max_profit = profit
+                            sws_max_profit = sws
+                            lws_max_profit = lws
+                            enveloppe_max_profit = enveloppe
+                            trading_signals_max_profit = df_signals
+                    except Exception as e:
+                        log.error( e )
         log.info( "[EMA] Optimize for %s", self.symbol )
         log.info( "[EMA] Small windows size : %s", sws_max_profit )
         log.info( "[EMA] Long windows size : %s", lws_max_profit )
         log.info( "[EMA] Enveloppe : %s", enveloppe_max_profit )
         log.info( "[EMA] Max profit : %s", max_profit )
         log.info( "[EMA] Trading positions number : %s", len(trading_signals_max_profit) )
-        return (trading_signals_max_profit,sws_max_profit, lws_max_profit, enveloppe, max_profit )
+        self.small_windows_size = sws_max_profit
+        self.long_windows_size = lws_max_profit
+        self.enveloppe = enveloppe_max_profit
+        return (trading_signals_max_profit,sws_max_profit, lws_max_profit, enveloppe_max_profit, max_profit )
 
 
 

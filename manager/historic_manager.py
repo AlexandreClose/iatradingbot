@@ -2,6 +2,7 @@ import asyncio
 
 import pandas as pd
 import matplotlib.pyplot as plt
+from datetime import datetime
 
 from historicprovider.xtb_historic_provider import  xtb_historic_provider
 from logging_conf import log
@@ -45,40 +46,47 @@ class HistoricManager( ):
 
     async def get_historical_datas_updated(self, symbol ):
         if not self.historical_datas[symbol]:
-            self.historical_datas[symbol] = self.clientMongos[symbol].find()
+            datas_from_mongo = []
+            while len(datas_from_mongo) == 0:
+                datas_from_mongo = self.clientMongos[symbol].find()
+                await asyncio.sleep(1)
+            self.historical_datas[symbol] = datas_from_mongo
         return self.historical_datas[symbol]
 
-    async def get_historical_dataframe_updated(self, symbol ):
+    async def get_historical_dataframe_updated(self, symbol, lastDays=None ):
         datas = await self.get_historical_datas_updated( symbol )
-        df = pd.DataFrame( datas )
-        df['Date'] = pd.to_datetime(df['Date'],unit='s')
-        df.set_index('Date', inplace = True)
-        df = df.sort_index()
-        return df
+
+        if datas:
+            df = pd.DataFrame( datas )
+            df['Date'] = pd.to_datetime(df['Date'],unit='s')
+            df.set_index('Date', inplace = True)
+            df = df.sort_index()
+            if lastDays is not None:
+                today = datetime.today().date()
+                df = df[today - pd.offsets.Day(lastDays):]
+            return df
+        return None
 
     async def fetch_and_store_max_history_loop(self ):
-        await asyncio.sleep(1)
         while True:
-            await self.fetch_and_store_max_history()
             await asyncio.sleep(60)
+            await self.fetch_and_store_max_history()
+
 
     async def fetch_and_store_max_history(self ):
         for symbol in self.symbols:
-            if symbol not in self.historical_datas:
-                self.historical_datas[symbol] = []
-            log.info( "[HISTORY] : Fetch history for symbol %s",symbol)
+            log.info( "[HISTORY] : Fetch history delta for symbol %s",symbol)
             last_data = self.clientMongos[symbol].last()
             all_datas = []
             for provider in self.providers:
                 datas = await provider.fetch_max_history( symbol, last_data )
                 all_datas += datas
             self.clientMongos[symbol].insert_multiple( all_datas )
-            self.historical_datas[symbol].append( all_datas )
+            self.historical_datas[symbol] += all_datas
 
     async def plot_history(self, symbol, label='Open' ):
         history= await self.get_historical_dataframe_updated( symbol )
         log.info( '[PLOT] : plot history of symbol %s with following datas', symbol)
-        print ( history )
         history.plot(y=label)
         plt.show()
 

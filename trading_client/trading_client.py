@@ -236,7 +236,6 @@ class TradingClient():
 		self.ws_stream_tick_prices_dict.clear()
 		self.tick_prices_dict.clear()
 		self.followed_symbols = symbols
-		print( self.followed_symbols)
 		# follow given tick prices
 		for symbol in self.followed_symbols:
 			await self._get_tick_prices( symbol )
