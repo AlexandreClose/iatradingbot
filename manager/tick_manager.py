@@ -38,7 +38,7 @@ class TickManager:
         return tick_prices
 
     async def get_last_tick_data_upadted(self, symbol):
-        dict_tick_prices = await self.get_tick_datas_updated()
+        dict_tick_prices = await self.get_tick_datas_updated( symbol )
         list_tick_prices = list( dict_tick_prices.values())
         return list_tick_prices[-1]
 

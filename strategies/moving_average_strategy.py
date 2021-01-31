@@ -26,3 +26,6 @@ class MovingAverageStrategy(BaseStrategy):
             self.optimized = True
         signal = await self.movingAverageAnalyzer.compute_trading_signal_now()
         return signal
+
+    def check_last_signal_too_close( self ):
+        return datetime.datetime.today().strftime('%Y-%m-%d') == self.last_date_signal

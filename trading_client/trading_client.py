@@ -1,5 +1,7 @@
 import datetime
 import time
+import traceback
+
 import websockets
 import json
 from logging_conf import log
@@ -52,7 +54,6 @@ class TradingClient():
 		await self._init_websockets()
 		command = {"command" : "login","arguments": {"userId": user ,"password": password}}
 		response = await asyncio.ensure_future( self._send_and_receive(command, self.ws_login) )
-		assert response['status']==True
 		self.stream_session_id = response['streamSessionId']
 		log.info( "[LOGIN] : Success. Session open on XTB with stream session id %s", self.stream_session_id )
 		await asyncio.ensure_future( self._fill_existing_trades())
@@ -86,7 +87,7 @@ class TradingClient():
 	async def open_buy_trade(self, symbol, volume, stop_loss, take_profit ):
 		response = await asyncio.ensure_future( self._trade_transaction( MODES.BUY, TRANS_TYPES.OPEN, symbol, volume, stop_loss, take_profit ))
 		order_id = response['returnData']['order']
-		log.info( "[OPEN BUY] : %s", order_id )
+		log.info( "[OPEN BUY] : %s for symbol %s and volume %s", order_id, symbol, volume )
 		await self.get_all_updated_trades( )
 		return order_id
 

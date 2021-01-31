@@ -1,4 +1,5 @@
 import datetime
+import json
 
 import numpy as np
 import pandas as pd
@@ -6,19 +7,21 @@ from datetime import date
 
 from manager.historic_manager import HistoricManager
 from logging_conf import log
+import matplotlib.pyplot as plt
 
 
 
 class MovingAverageAnalyzer:
 
-    def __init__(self, symbol, type = 'lma', small_windows_size = 3, long_windows_size = 100, enveloppe=1, time_type="daily" ):
+    def __init__(self, symbol, type = 'lma', small_windows_size = 3, long_windows_size = 100, enveloppe=1.0, derivative_abs_limit = 0.0, time_type="daily" ):
         self.symbol = symbol
         self.type = type
         self.small_windows_size=small_windows_size
         self.long_windows_size = long_windows_size
         self.enveloppe=enveloppe
-        self.commission = 0
+        self.commission = 1
         self.time_type = time_type
+        self.derivative_abs_limit = derivative_abs_limit
 
 
     async def compute_exponential_moving_average(self ):
@@ -74,16 +77,18 @@ class MovingAverageAnalyzer:
         return dataframe
 
     async def compute_trading_signal_now(self):
-        ldf = await self.compute_trading_signals( )
+        # trading_positions,ldf = await self.compute_trading_signals( )
+        ldf,trading_positions = await self.compute_trading_signals( )
         if not ldf.empty:
             today = date.today()
             d1 = today.strftime("%Y-%m-%d")
             last_signal = ldf.loc[ldf.index == d1]
             if not last_signal.empty:
                 signal = last_signal.to_dict(orient='records')[0]
+                print( signal )
                 signal_timestamp = datetime.datetime.now().timestamp()
                 signal_datetime = datetime.datetime.now()
-                signal_type = "BUY" if signal['cross_sma_Close_lma_top_Close'] else "SELL"
+                signal_type = "BUY" if signal['cross_sma_Close_lma_Close'] else "SELL"
                 signal = {
                     "type" : signal_type,
                     "Timestamp":signal_timestamp,
@@ -108,7 +113,8 @@ class MovingAverageAnalyzer:
             df['diff_sma_Close_lma_Close']=df['sma_Close']-df['lma_Close']
             df['cross_sign_sma_Close_lma_Close'] = np.sign(df['diff_sma_Close_lma_Close'].shift(-1) * np.sign(df['diff_sma_Close_lma_Close']))*np.sign(df['diff_sma_Close_lma_Close'])
             df['cross_sma_Close_lma_Close'] = np.sign(df['diff_sma_Close_lma_Close'].shift(-1)) != np.sign(df['diff_sma_Close_lma_Close'])
-            df = df[(df['cross_sma_Close_lma_Close']==True)]
+            trading_positions = df[(df['cross_sma_Close_lma_Close']==True)]
+            trading_positions=trading_positions.sort_index()
         else :
             df['diff_sma_Close_lma_Close']=df['sma_Close']-df['lma_Close']
 
@@ -125,60 +131,102 @@ class MovingAverageAnalyzer:
             df_bottom['cross_sma_Close_lma_bottom_Close'] = np.sign(df_bottom['diff_sma_Close_lma_bottom_Close'].shift(-1)) != np.sign(df_bottom['diff_sma_Close_lma_bottom_Close'])
             df_bottom = df_bottom[(df_bottom['cross_sma_Close_lma_bottom_Close']==True) ]
             df_bottom = df_bottom[(df_bottom['cross_sign_sma_Close_lma_Close']<0)]
-            
-            df = pd.concat( [ df_top,df_bottom])
 
-            df=df.sort_index()
+            trading_positions = pd.concat( [ df_top,df_bottom])
 
-        # filter on derivative
-        df=df[df['cross_sign_sma_Close_lma_Close']!=df.shift(-1)['cross_sign_sma_Close_lma_Close']]
+            trading_positions=trading_positions.sort_index()
 
-        df=df[(df['sma_slope'].abs() >=0)]
-        df=df[df['cross_sign_sma_Close_lma_Close']!=df.shift(-1)['cross_sign_sma_Close_lma_Close']]
-        print(df.head())
-        df = df[(df['cross_sign_sma_Close_lma_Close'] > 0).idxmax():]
-        return df
+        # filter some trading positions
+        trading_positions=trading_positions[trading_positions['cross_sign_sma_Close_lma_Close']!=trading_positions.shift(-1)['cross_sign_sma_Close_lma_Close']]
+
+        trading_positions=trading_positions[(trading_positions['sma_slope'].abs() >=self.derivative_abs_limit)]
+        trading_positions=trading_positions[trading_positions['cross_sign_sma_Close_lma_Close']!=trading_positions.shift(-1)['cross_sign_sma_Close_lma_Close']]
+        trading_positions = trading_positions[(trading_positions['cross_sign_sma_Close_lma_Close'] > 0).idxmax():]
+
+
+        trading_positions_sign = trading_positions['cross_sign_sma_Close_lma_Close']
+
+        # Fill original dataframe with trading position
+
+        if self.time_type == 'daily':
+            trading_positions_sign=trading_positions_sign.resample("1D").ffill()
+
+        if self.time_type == 'intraday':
+            trading_positions_sign=trading_positions_sign.resample("1Min").ffill()
+
+        df['trading_positions'] = trading_positions_sign
+        df['trading_positions'] = df['trading_positions'].fillna(0)
+
+        return trading_positions, df
 
     async def compute_profit(self):
-        df_signals = await self.compute_trading_signals( )
-        df_signals['profit'] = (df_signals['Close'].shift(-1)-df_signals['Close'])* df_signals['cross_sign_sma_Close_lma_Close'] - self.commission * 0.01*df_signals['Close'].shift(-1)
-        sum_profit = df_signals['profit'].sum()
-        return (df_signals,sum_profit)
+        df_signals, df = await self.compute_trading_signals( )
+        df['log_return'] = np.log(df['Close']).diff()
+        df['log_return'] = df['log_return']*df['trading_positions']
+        df['cumsum_log_return'] = df['log_return'].cumsum()
+        df['cumsum_relative_log_return'] = np.exp(df['cumsum_log_return']) - 1
+        return df,df['cumsum_relative_log_return'][-1],df_signals
 
     async def optimize (self ):
-        sws_max_profit = None
-        lws_max_profit = None
-        enveloppe_max_profit = None
-        max_profit = None
-        trading_signals_max_profit = None
-        for sws in range( 1,2 ):
+
+        if self.time_type == 'daily':
+            range_sws = range( 1,2 );
+            range_lws = range ( 95, 105 )
+            range_enveloppe = np.linspace(0,3,3)
+            range_derivative_abs_limit = np.linspace(0,0.1,3)
+
+        if self.time_type == 'intraday':
+            range_sws = range( 1,2 );
+            range_lws = range ( 15, 25 )
+            range_enveloppe = np.linspace(0,3,3)
+            range_derivative_abs_limit = np.linspace(0,0.1,3)
+
+
+        list_tested_values = []
+        for sws in range_sws:
             log.info( '[EMA] Optimization iter with sws : %s', sws)
-            for lws in range ( 80, 120 ):
-                for enveloppe in range( 1, 2 ):
-                    try:
-                        self.enveloppe = enveloppe
-                        self.small_windows_size = sws
-                        self.long_windows_size = lws
-                        (df_signals,profit) = await self.compute_profit( )
-                        print (profit)
-                        if max_profit == None or profit > max_profit :
-                            max_profit = profit
-                            sws_max_profit = sws
-                            lws_max_profit = lws
-                            enveloppe_max_profit = enveloppe
-                            trading_signals_max_profit = df_signals
-                    except Exception as e:
-                        log.error( e )
+            for lws in range_lws:
+                for enveloppe in range_enveloppe:
+                    for derivative_abs_limit in range_derivative_abs_limit:
+                        try:
+                            self.small_windows_size = sws
+                            self.long_windows_size = lws
+                            self.enveloppe = enveloppe
+                            self.derivative_abs_limit = derivative_abs_limit
+                            (df_profit,profit,trading_signals) = await self.compute_profit( )
+                            list_tested_values.append( {
+                                "enveloppe":enveloppe,
+                                "sws":sws,
+                                "lws":lws,
+                                "derivative_abs_limit":derivative_abs_limit,
+                                "nb_trades":len(trading_signals),
+                                "profit":profit
+                            })
+                        except Exception as e:
+                            log.error( e )
+
+        # Make a panda DF with all the combinations
+        df_best_values = pd.DataFrame( list_tested_values)
+        df_best_values=df_best_values.sort_values(by=['profit','nb_trades'], ascending=[False,False])
+
+        best_values = df_best_values.head(1).to_dict('records')[0]
+        sws_opti=best_values['sws']
+        lws_opti=best_values['lws']
+        enveloppe_opti=best_values['enveloppe']
+        derivative_opti=best_values['derivative_abs_limit']
+        trading_signals_number_opti=best_values['nb_trades']
+        profit_opti=best_values['profit']
         log.info( "[EMA] Optimize for %s", self.symbol )
-        log.info( "[EMA] Small windows size : %s", sws_max_profit )
-        log.info( "[EMA] Long windows size : %s", lws_max_profit )
-        log.info( "[EMA] Enveloppe : %s", enveloppe_max_profit )
-        log.info( "[EMA] Max profit : %s", max_profit )
-        log.info( "[EMA] Trading positions number : %s", len(trading_signals_max_profit) )
-        self.small_windows_size = sws_max_profit
-        self.long_windows_size = lws_max_profit
-        self.enveloppe = enveloppe_max_profit
-        return (trading_signals_max_profit,sws_max_profit, lws_max_profit, enveloppe_max_profit, max_profit )
+        log.info( "[EMA] Small windows size : %s", sws_opti )
+        log.info( "[EMA] Long windows size : %s", lws_opti )
+        log.info( "[EMA] Enveloppe : %s", enveloppe_opti )
+        log.info( "[EMA] Derivative : %s", derivative_opti )
+        log.info( "[EMA] Max profit : %s", profit_opti )
+        log.info( "[EMA] Trading positions number : %s", trading_signals_number_opti )
+        self.small_windows_size = sws_opti
+        self.long_windows_size = lws_opti
+        self.enveloppe = enveloppe_opti
+        self.derivative_abs_limit = derivative_opti
 
 
 

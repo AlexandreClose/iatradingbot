@@ -16,9 +16,10 @@ async def mainProgram():
     # process login. this will launch all the websockets and permanent streams (trades, profit, ping, keep_alive)
     await trading_client.login("11769869", "TestTest123123")  # totoletrader2@yopmail.com
     await asyncio.sleep( 2 )
-    # await strategy_manager.register_strategy('intraday_moving_average', 'RIPPLE')
-    await strategy_manager.register_strategy('intraday_moving_average', 'BITCOIN')
+    await strategy_manager.register_strategy('intraday_moving_average', 'RIPPLE')
     # await strategy_manager.register_strategy('intraday_moving_average', 'BITCOIN')
+    # await strategy_manager.register_strategy('intraday_moving_average', 'DASH')
+    # await strategy_manager.register_strategy('intraday_moving_average', 'LITECOIN')
 
 async def scheduler():
     while True:

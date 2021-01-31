@@ -26,3 +26,6 @@ class IntradayMovingAverageStrategy(BaseStrategy):
             self.optimized = True
         signal = await self.movingAverageAnalyzer.compute_trading_signal_now()
         return signal
+
+    def check_last_signal_too_close( self ):
+        return False

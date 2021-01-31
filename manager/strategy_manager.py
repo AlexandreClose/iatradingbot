@@ -51,7 +51,7 @@ class StrategyManager:
 
     def estimate_n_currency(self, symbol ):
         # simply remove a fixed nb of currencies
-        return 100
+        return 4000
 
 strategy_manager = StrategyManager.instance()
 

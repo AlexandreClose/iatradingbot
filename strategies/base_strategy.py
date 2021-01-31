@@ -1,6 +1,8 @@
 import asyncio
 import datetime
 import enum
+import json
+import traceback
 from asyncio import CancelledError
 
 from analyzer.moving_average_analyzer import MovingAverageAnalyzer
@@ -42,38 +44,48 @@ class BaseStrategy:
 
     async def listen(self):
         await self._get_last_signal()
-        while datetime.datetime.today().strftime('%Y-%m-%d') != self.last_date_signal: # loop if no signal is received since 1 day
-            try:
-                signal = await self._compute_signal()
-                if signal == None:
-                    log.info( "[STRATEGY] MA for symbol " + self.symbol + ". NO SIGNAL RECEIVED" )
-                else:
-                    log.info( "[STRATEGY] MA for symbol " + self.symbol + ". SIGNAL : " + str(signal) )
+        while True: # loop if no signal is received since 1 day
+
+            if self.check_last_signal_too_close():
+                log.info( "[STRATEGY] for symbol " + self.symbol + ". Last signal is too recent for computation")
+                await asyncio.sleep( 60 )
+            else:
+                try:
+                    signal = await self._compute_signal()
+                    if signal == None:
+                        log.info( "[STRATEGY] for symbol " + self.symbol + ". NO SIGNAL RECEIVED" )
+                    else:
+                        log.info( "[STRATEGY] for symbol " + self.symbol + ". SIGNAL : " + str(signal) )
 
 
-                if signal:
-                        self.signals_dict[signal['Date']]=signal
-                        self.last_date_signal = signal['Date']
-                        if (self.last_type_signal != None and signal['type'] != self.last_type_signal) or (self.last_type_signal == None and signal['type']!= 'SELL'):
-                            self.react( signal )
-                log.info( "[STRATEGY] MA for symbol " + self.symbol + ". WAIT FOR 60 SEC FOR NEXT SIGNAL" )
-                await asyncio.sleep( 5) # wait 1 minute for fetching new signal
-            except KeyError as e:
-                log.error( e )
-                raise CancelledError
+                    if signal:
+                            log.info( "[STRATEGY] for symbol " + self.symbol + ". SIGNAL :" )
+                            print( signal )
+                            self.signals_dict[signal['Date']]=signal
+                            self.last_date_signal = signal['Date']
+                            if (self.last_type_signal != None and signal['type'] != self.last_type_signal) or (self.last_type_signal == None and signal['type']!= 'SELL'):
+                                await self.react( signal )
+                    await asyncio.sleep( 60 ) # wait 1 minute for fetching new signal
+                except KeyError as e:
+                    traceback.print_exc()
+                    log.error( e )
+                    raise CancelledError
 
     async def react(self, signal ):
         if signal['type'] == 'BUY':
-            tick_price = self.tick_price_manager.get_last_tick_data_upadted()
+            tick_price = await self.tick_price_manager.get_last_tick_data_upadted( self.symbol )
             bid = tick_price['bid']
-            volume_to_buy = self.n_currencies / bid
-            self.client.open_buy_trade( self.symbol, volume_to_buy, 0, 0 )
+            volume_to_buy = round(self.n_currencies / bid,1)
+            await self.client.open_buy_trade( self.symbol, volume_to_buy, 0, 0 )
         if signal['type'] == 'SELL':
             if self.mode_sell == MODE_SELL.ONLY_CLOSE:
-                self.client.close_all_trades(  time_limit = 0, symbol=self.symbol )
+                await self.client.close_all_trades(  time_limit = 0, symbol=self.symbol )
             elif self.mode_sell == MODE_SELL.TAKE_SHORT:
-                self.client.close_all_trades(  time_limit = 0, symbol=self.symbol )
-                self.client.open_sell_trade( self.symbol, volume_to_buy, 0, 0)
+                await self.client.close_all_trades(  time_limit = 0, symbol=self.symbol )
+                await self.client.open_sell_trade( self.symbol, volume_to_buy, 0, 0)
+
+    def check_last_signal_too_close(self):
+        raise NotImplementedError("Must override method check_last_signal_too_close")
 
 
 
