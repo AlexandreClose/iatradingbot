@@ -20,7 +20,7 @@ class IntradayMovingAverageStrategy(BaseStrategy):
         self.optimized = False
 
 
-    async def _compute_signal(self ):
+    async def compute_signal(self ):
         if not self.optimized:
             await self.movingAverageAnalyzer.optimize()
             self.optimized = True

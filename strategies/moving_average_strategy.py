@@ -14,13 +14,13 @@ class MODE_SELL(enum.Enum):
 
 class MovingAverageStrategy(BaseStrategy):
 
-    def __init__(self, symbol, n_currencies):
+    def __init__(self, symbol, n_currencies, optimized=False):
         super(MovingAverageStrategy, self).__init__( symbol, n_currencies)
         self.movingAverageAnalyzer=MovingAverageAnalyzer( self.symbol, 'ema', 1, 118,1, time_type = "daily")
-        self.optimized = False
+        self.optimized = optimized
 
 
-    async def _compute_signal(self ):
+    async def compute_signal(self ):
         if not self.optimized:
             await self.movingAverageAnalyzer.optimize()
             self.optimized = True

@@ -3,7 +3,7 @@ import asyncio
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from trading_client.trading_client import trading_client
+from trading_client.trading_client import admin_trading_client
 from utils.singleton import Singleton
 from logging_conf import log
 
@@ -12,7 +12,7 @@ from logging_conf import log
 class TickManager:
     def __init__(self ):
         self.symbols = []
-        self.trading_client = trading_client
+        self.trading_client = admin_trading_client
 
     async def register_symbol(self, symbol):
         if symbol not in self.symbols:

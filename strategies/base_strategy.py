@@ -5,9 +5,11 @@ import json
 import traceback
 from asyncio import CancelledError
 
+from quart import session
+
 from analyzer.moving_average_analyzer import MovingAverageAnalyzer
 from manager.tick_manager import TickManager
-from trading_client.trading_client import TradingClient, trading_client, MODES
+from trading_client.trading_client import TradingClient, admin_trading_client, MODES, trading_clients
 from logging_conf import log
 
 
@@ -18,8 +20,8 @@ class MODE_SELL(enum.Enum):
 
 class BaseStrategy:
 
-    def __init__(self, symbol, n_currencies ):
-        self.client : TradingClient = trading_client
+    def __init__(self, symbol, n_currencies, username='admin' ):
+        self.client : TradingClient = trading_clients[username]
         self.symbol=symbol
         self.signals_dict={}
         self.n_currencies = n_currencies; # nb currencies put on this strategy
@@ -29,7 +31,7 @@ class BaseStrategy:
         self.last_type_signal = None #need to fetch last signal type based on current trade
         self.mode_sell = MODE_SELL.ONLY_CLOSE
 
-    async def _get_last_signal(self):
+    async def get_last_signal(self):
         dict_trades =  await self.client.get_all_updated_trades( symbol=self.symbol)
         if len(dict_trades) > 0:
             last_trade = list(dict_trades.values())[-1]
@@ -43,7 +45,7 @@ class BaseStrategy:
             self.last_type_signal=None
 
     async def listen(self):
-        await self._get_last_signal()
+        await self.get_last_signal()
         while True: # loop if no signal is received since 1 day
 
             if self.check_last_signal_too_close():
@@ -51,7 +53,8 @@ class BaseStrategy:
                 await asyncio.sleep( 60 )
             else:
                 try:
-                    signal = await self._compute_signal()
+                    signal = await self.compute_signal()
+                    yield signal
                     if signal == None:
                         log.info( "[STRATEGY] for symbol " + self.symbol + ". NO SIGNAL RECEIVED" )
                     else:

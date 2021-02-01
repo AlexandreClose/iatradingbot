@@ -1,25 +1,28 @@
 import asyncio
-import unittest
+import pytest
+from quart import Quart
 
 from manager.historic_manager import historic_manager
 from strategies.moving_average_strategy import MovingAverageStrategy
-from trading_client.trading_client import trading_client
+from trading_client.trading_client import admin_trading_client
+
+@pytest.fixture
+@pytest.mark.asyncio
+async def setup_session():
+    app = Quart(__name__)
+    app.secret_key = "secret"
+    test_client = app.test_client()
+    async with test_client.session_transaction() as local_session:
+        local_session['trading_client']='admin'
 
 
-class TestMovingAverageStrategy(unittest.TestCase):
+@pytest.mark.asyncio
+async def test_get_last_signal( setup_session ):
 
-    def __init__(self, *args, **kwargs):
-        super(TestMovingAverageStrategy, self).__init__(*args, **kwargs)
-        self.symbol = 'BITCOIN'
-        self.movingAverageStrategy= MovingAverageStrategy( self.symbol, 200)
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete( trading_client.login("11769869", "TestTest123123"))
-        loop.run_until_complete( historic_manager.register_symbol( self.symbol))
-        loop.run_until_complete( asyncio.sleep( 3 ) )
+    symbol = 'BITCOIN'
+    movingAverageStrategy= MovingAverageStrategy( symbol, 200, optimized=True)
 
-    def test_get_last_signal(self):
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete( self.movingAverageStrategy._get_last_signal() )
-
-if __name__ == '__main__':
-    unittest.main()
+    await admin_trading_client.login("11769869", "TestTest123123")
+    await  historic_manager.register_symbol( symbol)
+    await asyncio.sleep( 3 )
+    signal = await movingAverageStrategy.compute_signal()

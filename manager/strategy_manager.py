@@ -7,13 +7,13 @@ from strategies.moving_average_strategy import MovingAverageStrategy
 from utils.singleton import Singleton
 
 
-@Singleton
+# Not a singleton. Depending on session
 class StrategyManager:
     def __init__(self ):
         self.symbols = []
         self.moving_average_strategies = dict()
 
-    async def register_strategy(self, strategy_type, symbol, n_currency = None ):
+    async def register_strategy(self, strategy_type, symbol, n_currency = None, username='admin' ):
 
         if n_currency == None:
             n_currency = self.estimate_n_currency( symbol )
@@ -28,18 +28,18 @@ class StrategyManager:
 
 
             if strategy_type == STRATEGY_TYPE.MOVING_AVERAGE.value:
-                self.moving_average_strategies[symbol]=MovingAverageStrategy( symbol, n_currency )
+                self.moving_average_strategies[symbol]=MovingAverageStrategy( symbol, n_currency, username )
                 asyncio.ensure_future( self.moving_average_strategies[symbol].listen() )
 
             if strategy_type == STRATEGY_TYPE.INTRADAY_MOVING_AVERAGE.value:
 
-                self.moving_average_strategies[symbol]=IntradayMovingAverageStrategy( symbol, n_currency )
+                self.moving_average_strategies[symbol]=IntradayMovingAverageStrategy( symbol, n_currency, username )
                 asyncio.ensure_future( self.moving_average_strategies[symbol].listen() )
                 print ( 'END ' + symbol)
 
-    async def unregister_strategy(self, strategy_type, symbol):
+    async def unregister_strategy(self, strategy_type, symbol, username='admin'):
         if symbol in self.symbols:
-            await symbol_manager.unregister_symbol( symbol )
+            await symbol_manager.unregister_symbol( symbol, username )
             self.symbols.remove( symbol )
 
         if strategy_type == STRATEGY_TYPE.MOVING_AVERAGE.name:
@@ -53,7 +53,4 @@ class StrategyManager:
         # simply remove a fixed nb of currencies
         return 4000
 
-strategy_manager = StrategyManager.instance()
-
-
-
+strategy_managers={}

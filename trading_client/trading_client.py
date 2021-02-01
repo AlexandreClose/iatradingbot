@@ -17,7 +17,6 @@ def extract_time(json):
     except KeyError:
         return 0
 
-@Singleton
 class TradingClient():
 
 	def __init__(self):
@@ -448,4 +447,6 @@ class TradingClient():
 		self.trades = {k: v for k, v in self.trades.items() if v['closed'] == False}
 		self.trades = {k: v for k, v in self.trades.items() if v['state'] != 'Deleted'}
 
-trading_client = TradingClient.instance()
+admin_trading_client = TradingClient()
+trading_clients={}
+trading_clients["admin"]=admin_trading_client

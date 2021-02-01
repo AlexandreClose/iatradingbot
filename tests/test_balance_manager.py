@@ -1,26 +1,18 @@
 import asyncio
-import unittest
+import pytest
 
-from manager.balance_manager import balance_manager
-from manager.balance_manager import BalanceManager
-from manager.historic_manager import historic_manager
-from strategies.moving_average_strategy import MovingAverageStrategy
-from trading_client.trading_client import trading_client
+from manager.balance_manager import admin_balance_manager
+from trading_client.trading_client import admin_trading_client
 
 
-class TestBalanceManager(unittest.TestCase):
+@pytest.fixture
+@pytest.mark.asyncio
+async def login():
+    await admin_trading_client.login("11769869", "TestTest123123")
+    await asyncio.sleep( 1 )
 
-    def __init__(self, *args, **kwargs):
-        super(TestBalanceManager, self).__init__(*args, **kwargs)
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete( trading_client.login("11769869", "TestTest123123"))
-        loop.run_until_complete( asyncio.sleep( 1 ) )
-        self.balance_manager : BalanceManager = balance_manager
 
-    def test_get_last_signal(self):
-        loop = asyncio.get_event_loop()
-        last_balance = loop.run_until_complete( self.balance_manager.get_last_balance() )
-        self.assertIn( 'balance', last_balance)
-
-if __name__ == '__main__':
-    unittest.main()
+@pytest.mark.asyncio
+async def test_get_last_balance(login):
+    last_balance = await admin_balance_manager.get_last_balance()
+    assert 'balance' in last_balance

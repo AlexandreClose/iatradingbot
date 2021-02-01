@@ -1,6 +1,6 @@
 import datetime
 
-from trading_client.trading_client import trading_client
+from trading_client.trading_client import admin_trading_client
 from utils.singleton import Singleton
 from trading_client.trading_client_enums import *
 
@@ -15,7 +15,7 @@ def extract_time(json):
 class XtbHistoricProvider:
 
     def __init__(self ):
-        self.trading_client = trading_client
+        self.trading_client = admin_trading_client
 
 
     async def fetch_max_history( self, symbol, last_data = None ):

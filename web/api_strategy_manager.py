@@ -1,6 +1,8 @@
-from quart import Blueprint, jsonify, request
+import asyncio
 
-from manager.strategy_manager import strategy_manager
+from quart import Blueprint, jsonify, request, session
+
+from manager.strategy_manager import StrategyManager, strategy_managers
 
 api_strategy_manager = Blueprint('api_strategy_manager', __name__)
 
@@ -10,10 +12,22 @@ async def register_strategy( ):
         args = request.args
         strategy_type=args.get('strategy_type')
         symbol=args.get('symbol')
-        await strategy_manager.register_strategy( strategy_type, symbol )
-        resp = jsonify(success=True)
-        resp.status_code = 200
-        return resp
+        username=session['username']
+        if username:
+            if username in strategy_managers:
+                strategy_manager = strategy_managers[username]
+            else:
+                strategy_manager = StrategyManager()
+                strategy_managers[username] = strategy_manager
+            await strategy_manager.register_strategy( strategy_type, symbol, username )
+            resp = jsonify(success=True)
+            resp.status_code = 200
+            return resp
+        else:
+            resp = jsonify(success=False,msg="Not Logged In")
+            resp.status_code = 500
+            return resp
+
     except Exception as er:
         resp = jsonify(success=False,message=str(er))
         return resp
@@ -24,9 +38,15 @@ async def unregister_strategy( ):
         args = request.args
         strategy_type=args.get('strategy_type')
         symbol=args.get('symbol')
-        await strategy_manager.unregister_strategy( strategy_type, symbol )
-        resp = jsonify(success=True)
-        resp.status_code = 200
+        username = session['username']
+        if username != None :
+            if username in strategy_managers:
+                strategy_manager = strategy_managers[username]
+                await strategy_manager.unregister_strategy( strategy_type, symbol )
+                resp = jsonify(success=True)
+                resp.status_code = 200
+                return resp
+        resp = jsonify(success=False,message="Not Logged In")
         return resp
     except Exception as er:
         resp = jsonify(success=False,message=er)

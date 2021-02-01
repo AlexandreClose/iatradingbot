@@ -1,31 +1,27 @@
 import asyncio
 import unittest
-from trading_client.trading_client import TradingClient, trading_client
 
+import pytest
 
-class TestTweetAnalyzer(unittest.TestCase):
+from trading_client.trading_client import TradingClient, admin_trading_client
 
-    def __init__(self, *args, **kwargs):
-        super(TestTweetAnalyzer, self).__init__(*args, **kwargs)
-        self.client=trading_client
-        loop=asyncio.get_event_loop()
-        # authenticate the client with no starting of streams
-        response = loop.run_until_complete( self.client.login("11769869", "TestTest123123",False) )
-        self.assertTrue(response['status'])
+@pytest.fixture
+@pytest.mark.asyncio
+async def login():
+    response = await admin_trading_client.login("11769869", "TestTest123123")
+    assert response['status'] == True
+    await asyncio.sleep( 1 )
 
-    def test_get_symbol(self ):
-        loop=asyncio.get_event_loop()
-        response = loop.run_until_complete( self.client.get_symbol( 'BITCOIN') )
-        print( response )
-        self.assertEqual(response['symbol'], 'BITCOIN')
+@pytest.mark.asyncio
+async def test_get_symbol( login ):
+    response = await admin_trading_client.get_symbol( 'BITCOIN')
+    print( response )
+    assert response['symbol'] == 'BITCOIN'
 
-    def test_get_all_symbol(self ):
-        loop=asyncio.get_event_loop()
-        response = loop.run_until_complete( self.client.get_all_symbols( ) )
-        self.assertIn('symbol',response[0].keys())
-        for symbol_data in response:
-            self.assertIn('symbol',symbol_data.keys())
-            print ( symbol_data['symbol'] )
-
-if __name__ == '__main__':
-    unittest.main()
+@pytest.mark.asyncio
+async def test_get_all_symbol(login ):
+    response = await admin_trading_client.get_all_symbols( )
+    assert 'symbol' in response[0].keys()
+    for symbol_data in response:
+        assert 'symbol' in symbol_data.keys()
+        print ( symbol_data['symbol'] )
