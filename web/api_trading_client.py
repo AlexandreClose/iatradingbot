@@ -1,6 +1,10 @@
+import flask_login
+from flask_login import login_user
 from quart import Blueprint, jsonify, request, session
 
+from manager.user_manager import user_manager
 from trading_client.trading_client import TradingClient, trading_clients
+from web.user import User
 
 api_trading_client = Blueprint('api_trading_client', __name__)
 
@@ -10,18 +14,30 @@ async def login( ):
         args = request.args
         username=args.get('username')
         password=args.get('password')
+        user = User()
+        user.id = username
 
-        session_trading_client = TradingClient()
-        if username != None and password != None:
-            log_response = await session_trading_client.login( username, password )
-            if log_response['status'] == True:
-                session['username']=username
-                session['password']=password
-                session['trading_client']=username
-                trading_clients[username]=session_trading_client
-                resp = jsonify(success=True)
-                resp.status_code = 200
-                return resp
+        user_registered = user_manager.get_user_by_username( username )[0]
+        if not user_registered:
+            # try login with trading client
+            trading_client = TradingClient()
+            login_response = await trading_client.login( username, password )
+            if login_response['status'] == True:
+                user_manager.register_user( {
+                    "username":username,
+                    "password":password
+                })
+                trading_clients[username]=trading_client
+            else:
+                return
+        else:
+            if not username in trading_clients:
+                trading_client = TradingClient()
+                login_response = await trading_client.login( username, password )
+                if login_response['status'] == True:
+                    trading_clients[username]=trading_client
+        login_user(user)
+        return 'test'
 
     except Exception as er:
         resp = jsonify(success=False,message=str(er))

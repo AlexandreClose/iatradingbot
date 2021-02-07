@@ -44,6 +44,9 @@ class BaseStrategy:
         else:
             self.last_type_signal=None
 
+    async def optimize(self):
+        raise NotImplementedError("Must override method optimize")
+
     async def listen(self):
         await self.get_last_signal()
         while True: # loop if no signal is received since 1 day
@@ -54,7 +57,6 @@ class BaseStrategy:
             else:
                 try:
                     signal = await self.compute_signal()
-                    yield signal
                     if signal == None:
                         log.info( "[STRATEGY] for symbol " + self.symbol + ". NO SIGNAL RECEIVED" )
                     else:

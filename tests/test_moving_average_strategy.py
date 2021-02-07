@@ -2,6 +2,7 @@ import asyncio
 import pytest
 from quart import Quart
 
+from conf.xtb_admin_account import xtb_admin_account_id, xtb_admin_account_password
 from manager.historic_manager import historic_manager
 from strategies.moving_average_strategy import MovingAverageStrategy
 from trading_client.trading_client import admin_trading_client
@@ -22,7 +23,7 @@ async def test_get_last_signal( setup_session ):
     symbol = 'BITCOIN'
     movingAverageStrategy= MovingAverageStrategy( symbol, 200, optimized=True)
 
-    await admin_trading_client.login("11769869", "TestTest123123")
+    await admin_trading_client.login(xtb_admin_account_id, xtb_admin_account_password)
     await  historic_manager.register_symbol( symbol)
     await asyncio.sleep( 3 )
     signal = await movingAverageStrategy.compute_signal()

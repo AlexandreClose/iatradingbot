@@ -167,66 +167,91 @@ class MovingAverageAnalyzer:
         df['cumsum_relative_log_return'] = np.exp(df['cumsum_log_return']) - 1
         return df,df['cumsum_relative_log_return'][-1],df_signals
 
-    async def optimize (self ):
+    async def optimize (self, params_opti = None ):
+        return_params_opti = {}
+        if not params_opti :
+            if self.time_type == 'daily':
+                range_sws = range( 1,2 );
+                range_lws = range ( 95, 105 )
+                range_enveloppe = np.linspace(0,3,3)
+                range_derivative_abs_limit = np.linspace(0,0.1,3)
 
-        if self.time_type == 'daily':
-            range_sws = range( 1,2 );
-            range_lws = range ( 95, 105 )
-            range_enveloppe = np.linspace(0,3,3)
-            range_derivative_abs_limit = np.linspace(0,0.1,3)
-
-        if self.time_type == 'intraday':
-            range_sws = range( 1,2 );
-            range_lws = range ( 15, 25 )
-            range_enveloppe = np.linspace(0,3,3)
-            range_derivative_abs_limit = np.linspace(0,0.1,3)
+            if self.time_type == 'intraday':
+                range_sws = range( 1,2 );
+                range_lws = range ( 15, 25 )
+                range_enveloppe = np.linspace(0,3,3)
+                range_derivative_abs_limit = np.linspace(0,0.1,3)
 
 
-        list_tested_values = []
-        for sws in range_sws:
-            log.info( '[EMA] Optimization iter with sws : %s', sws)
-            for lws in range_lws:
-                for enveloppe in range_enveloppe:
-                    for derivative_abs_limit in range_derivative_abs_limit:
-                        try:
-                            self.small_windows_size = sws
-                            self.long_windows_size = lws
-                            self.enveloppe = enveloppe
-                            self.derivative_abs_limit = derivative_abs_limit
-                            (df_profit,profit,trading_signals) = await self.compute_profit( )
-                            list_tested_values.append( {
-                                "enveloppe":enveloppe,
-                                "sws":sws,
-                                "lws":lws,
-                                "derivative_abs_limit":derivative_abs_limit,
-                                "nb_trades":len(trading_signals),
-                                "profit":profit
-                            })
-                        except Exception as e:
-                            log.error( e )
+            list_tested_values = []
+            log.info( '[EMA] Process optimisation for symbol %s', self.symbol)
+            for sws in range_sws:
+                for lws in range_lws:
+                    for enveloppe in range_enveloppe:
+                        for derivative_abs_limit in range_derivative_abs_limit:
+                            try:
+                                self.small_windows_size = sws
+                                self.long_windows_size = lws
+                                self.enveloppe = enveloppe
+                                self.derivative_abs_limit = derivative_abs_limit
+                                (df_profit,profit,trading_signals) = await self.compute_profit( )
+                                list_tested_values.append( {
+                                    "enveloppe":enveloppe,
+                                    "sws":sws,
+                                    "lws":lws,
+                                    "derivative_abs_limit":derivative_abs_limit,
+                                    "nb_trades":len(trading_signals),
+                                    "profit":profit
+                                })
+                            except Exception as e:
+                                log.error( e )
 
-        # Make a panda DF with all the combinations
-        df_best_values = pd.DataFrame( list_tested_values)
-        df_best_values=df_best_values.sort_values(by=['profit','nb_trades'], ascending=[False,False])
+            # Make a panda DF with all the combinations
+            df_best_values = pd.DataFrame( list_tested_values)
+            df_best_values=df_best_values.sort_values(by=['profit','nb_trades'], ascending=[False,False])
 
-        best_values = df_best_values.head(1).to_dict('records')[0]
-        sws_opti=best_values['sws']
-        lws_opti=best_values['lws']
-        enveloppe_opti=best_values['enveloppe']
-        derivative_opti=best_values['derivative_abs_limit']
-        trading_signals_number_opti=best_values['nb_trades']
-        profit_opti=best_values['profit']
-        log.info( "[EMA] Optimize for %s", self.symbol )
-        log.info( "[EMA] Small windows size : %s", sws_opti )
-        log.info( "[EMA] Long windows size : %s", lws_opti )
-        log.info( "[EMA] Enveloppe : %s", enveloppe_opti )
-        log.info( "[EMA] Derivative : %s", derivative_opti )
-        log.info( "[EMA] Max profit : %s", profit_opti )
-        log.info( "[EMA] Trading positions number : %s", trading_signals_number_opti )
-        self.small_windows_size = sws_opti
-        self.long_windows_size = lws_opti
-        self.enveloppe = enveloppe_opti
-        self.derivative_abs_limit = derivative_opti
+            best_values = df_best_values.head(1).to_dict('records')[0]
+            sws_opti=best_values['sws']
+            lws_opti=best_values['lws']
+            enveloppe_opti=best_values['enveloppe']
+            derivative_opti=best_values['derivative_abs_limit']
+            trading_signals_number_opti=best_values['nb_trades']
+            profit_opti=best_values['profit']
+            log.info( "[EMA] Optimize for %s", self.symbol )
+            log.info( "[EMA] Small windows size : %s", sws_opti )
+            log.info( "[EMA] Long windows size : %s", lws_opti )
+            log.info( "[EMA] Enveloppe : %s", enveloppe_opti )
+            log.info( "[EMA] Derivative : %s", derivative_opti )
+            log.info( "[EMA] Max profit : %s", profit_opti )
+            log.info( "[EMA] Trading positions number : %s", trading_signals_number_opti )
+            self.small_windows_size = sws_opti
+            self.long_windows_size = lws_opti
+            self.enveloppe = enveloppe_opti
+            self.derivative_abs_limit = derivative_opti
+            return_params_opti = {
+                "sws":sws_opti,
+                "lws":lws_opti,
+                "enveloppe":enveloppe_opti,
+                "derivative_abs_limit":derivative_abs_limit,
+                "profit":profit_opti,
+                "trading_signals_number":trading_signals_number_opti
+            }
+        else:
+            log.info( "Optimized params given for symbol %s. No need to process optimization", self.symbol)
+            log.info( "[EMA] Optimize for %s", self.symbol )
+            log.info( "[EMA] Small windows size : %s", params_opti["sws"] )
+            log.info( "[EMA] Long windows size : %s", params_opti["lws"] )
+            log.info( "[EMA] Enveloppe : %s", params_opti["enveloppe"] )
+            log.info( "[EMA] Derivative : %s", params_opti["derivative_abs_limit"] )
+            log.info( "[EMA] Max profit : %s", params_opti["profit"] )
+            log.info( "[EMA] Trading positions number : %s", params_opti["trading_signals_number"] )
+            self.small_windows_size = params_opti["sws"]
+            self.long_windows_size = params_opti["lws"]
+            self.enveloppe = params_opti["enveloppe"]
+            self.derivative_abs_limit = params_opti["derivative_abs_limit"]
+            return_params_opti = params_opti
+
+        return return_params_opti
 
 
 

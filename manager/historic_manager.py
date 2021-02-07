@@ -7,7 +7,7 @@ from datetime import datetime
 from historicprovider.xtb_historic_provider import  xtb_historic_provider
 from logging_conf import log
 
-from dao.mongodb_client_history import MongoDbClientHistory
+from dao.dao_history import MongoDbClientHistory
 from utils.singleton import Singleton
 
 def extract_time(json):

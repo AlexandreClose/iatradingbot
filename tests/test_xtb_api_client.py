@@ -3,12 +3,13 @@ import unittest
 
 import pytest
 
+from conf.xtb_admin_account import xtb_admin_account_password, xtb_admin_account_id
 from trading_client.trading_client import TradingClient, admin_trading_client
 
 @pytest.fixture
 @pytest.mark.asyncio
 async def login():
-    response = await admin_trading_client.login("11769869", "TestTest123123")
+    response = await admin_trading_client.login(xtb_admin_account_id, xtb_admin_account_password)
     assert response['status'] == True
     await asyncio.sleep( 1 )
 

@@ -1,9 +1,9 @@
 import pymongo
 
-from dao.mongodb_client import MongoDbClient
+from dao.dao_base_client import MongoDbBaseClient
 
 
-class MongoDbClientHistory(MongoDbClient):
+class MongoDbClientHistory(MongoDbBaseClient):
 
     def __init__(self, symbol, *args, **kwargs ):
         super(MongoDbClientHistory, self).__init__("history","history_"+symbol,*args, **kwargs)

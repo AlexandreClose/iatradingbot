@@ -6,6 +6,7 @@ import unittest
 import pandas as pd
 import pytest
 
+from conf.xtb_admin_account import xtb_admin_account_password, xtb_admin_account_id
 from manager.symbol_manager import symbol_manager
 from manager.tick_manager import TickManager
 from trading_client.trading_client import admin_trading_client
@@ -15,7 +16,7 @@ import matplotlib.pyplot as plt
 @pytest.fixture
 @pytest.mark.asyncio
 async def loginAndRegisterSymbol():
-    await admin_trading_client.login("11769869", "TestTest123123", False)
+    await admin_trading_client.login(xtb_admin_account_id, xtb_admin_account_password,False)
     await symbol_manager.register_symbol( 'ETHEREUM')
 
 @pytest.mark.asyncio

@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from analyzer.moving_average_analyzer import MovingAverageAnalyzer
+from conf.xtb_admin_account import xtb_account_password
 from manager.historic_manager import historic_manager
 from logging_conf import log
 from trading_client.trading_client import admin_trading_client
@@ -18,7 +19,7 @@ movingAverageAnalyzer= MovingAverageAnalyzer( symbol, 'ema', 3, 20 ,1.0, 0.01)
 @pytest.fixture
 @pytest.mark.asyncio
 async def loginAndRegisterSymbol():
-    await admin_trading_client.login("11769869", "TestTest123123", False)
+    await admin_trading_client.login(xtb_account,  xtb_account_password, False)
     await historic_manager.register_symbol( symbol)
 
 @pytest.mark.asyncio

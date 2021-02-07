@@ -21,11 +21,11 @@ class IntradayMovingAverageStrategy(BaseStrategy):
 
 
     async def compute_signal(self ):
-        if not self.optimized:
-            await self.movingAverageAnalyzer.optimize()
-            self.optimized = True
         signal = await self.movingAverageAnalyzer.compute_trading_signal_now()
         return signal
+
+    async def optimize(self, params_opti = None):
+        return await self.movingAverageAnalyzer.optimize( params_opti )
 
     def check_last_signal_too_close( self ):
         return False

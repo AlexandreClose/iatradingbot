@@ -3,7 +3,7 @@ from datetime import datetime
 import pandas as pd
 import yfinance as yf
 
-from dao.mongodb_client_history import MongoDbClientHistory
+from dao.dao_history import MongoDbClientHistory
 from utils.singleton import Singleton
 
 

@@ -20,7 +20,7 @@ class SORT_TYPE(enum.Enum):
     ASCENDING = 1
     DESCENDING = -1
 
-class MongoDbClient():
+class MongoDbBaseClient():
 
     def __init__(self, db_name, col_name):
         self.client=pymongo.MongoClient("mongodb+srv://dbuser:Azerty123@cluster0.3wb5a.mongodb.net/")

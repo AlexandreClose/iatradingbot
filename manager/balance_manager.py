@@ -10,7 +10,10 @@ class BalanceManager:
         self.client : TradingClient = trading_clients[username]
 
     async def get_last_balance(self):
-        return await self.client.get_last_updated_balance()
+        last_balance =  await self.client.get_last_updated_balance()
+        if not last_balance:
+            last_balance = await self.client.get_last_updated_balance_no_stream()
+        return last_balance
 
 admin_balance_manager = BalanceManager( )
 balance_managers={}

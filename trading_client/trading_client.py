@@ -205,7 +205,18 @@ class TradingClient():
 
 	async def get_last_updated_balance(self, **opt_args_filter ):
 		balances = self.balances
-		return balances[-1]
+		if balances:
+			return balances[-1]
+
+	async def get_last_updated_balance_no_stream(self, **opt_args_filter ):
+		command = {
+			"command": "getMarginLevel"
+		}
+		response = await self._send_and_receive(command, self.ws_login)
+		response=response['returnData']
+		if "balance" in response:
+			self.balances.append( response )
+		return response
 
 	async def get_symbol(self, symbol):
 		command = {

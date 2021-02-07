@@ -1,34 +1,29 @@
-import asyncio
-import pytest
-from hypercorn import Config
-from hypercorn.asyncio import serve
-from quart import Quart
+import quart.flask_patch
+from unittest.mock import patch
 
-from manager.historic_manager import historic_manager
+import pytest
+
+from conf.xtb_admin_account import xtb_admin_account_id, xtb_admin_account_password
 from manager.strategy_manager import strategy_managers
-from strategies.moving_average_strategy import MovingAverageStrategy
-from trading_client.trading_client import admin_trading_client
-from web.api_strategy_manager import api_strategy_manager
-from web.api_trading_client import api_trading_client
-from logging_conf import log
 
 
 @pytest.fixture
 @pytest.mark.asyncio
-async def setup_client():
-    app = Quart(__name__)
-    app.register_blueprint(api_trading_client)
-    app.register_blueprint(api_strategy_manager)
-    app.secret_key = "secret"
-    return app.test_client()
+async def setup_client( ):
+    with patch('quart.current_app'):
+        from web.create_app import create_app
+        app = create_app()
+        quart.current_app = app
+        return app
 
 @pytest.mark.asyncio
-async def test_login( setup_client ):
-    client = setup_client
-    response = await client.get('/login/?username=11769869&password=TestTest123123')
-    assert response.status_code == 200
+async def test_register_strategy( setup_client ):
+    app = setup_client
+    async with app.test_client() as client:
+        response = await client.get('/login/?username='+xtb_admin_account_id+'&password='+xtb_admin_account_password)
+        assert response.status_code == 200
 
-    response = await client.get('/strategy_manager/register/?symbol=BITCOIN&strategy_type=moving_average')
-    assert response.status_code == 200
-    assert len(strategy_managers) == 1
+        response = await client.get('/strategy_manager/register/?symbol=BITCOIN&strategy_type=moving_average')
+        assert response.status_code == 200
+        assert len(strategy_managers) == 1
 
