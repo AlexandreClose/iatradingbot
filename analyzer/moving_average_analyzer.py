@@ -79,13 +79,13 @@ class MovingAverageAnalyzer:
     async def compute_trading_signal_now(self):
         # trading_positions,ldf = await self.compute_trading_signals( )
         ldf,trading_positions = await self.compute_trading_signals( )
+        print(trading_positions)
         if not ldf.empty:
             today = date.today()
             d1 = today.strftime("%Y-%m-%d")
             last_signal = ldf.loc[ldf.index == d1]
             if not last_signal.empty:
                 signal = last_signal.to_dict(orient='records')[0]
-                print( signal )
                 signal_timestamp = datetime.datetime.now().timestamp()
                 signal_datetime = datetime.datetime.now()
                 signal_type = "BUY" if signal['cross_sma_Close_lma_Close'] else "SELL"
@@ -156,6 +156,7 @@ class MovingAverageAnalyzer:
 
         df['trading_positions'] = trading_positions_sign
         df['trading_positions'] = df['trading_positions'].fillna(0)
+        df =  df[df['trading_positions']!=0.0]
 
         return trading_positions, df
 

@@ -17,7 +17,9 @@ async def login( ):
         user = User()
         user.id = username
 
-        user_registered = user_manager.get_user_by_username( username )[0]
+        user_registered = None
+        if len(user_manager.get_user_by_username( username )) > 0:
+            user_registered = user_manager.get_user_by_username( username )[0]
         if not user_registered:
             # try login with trading client
             trading_client = TradingClient()

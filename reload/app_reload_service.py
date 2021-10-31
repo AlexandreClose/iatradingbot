@@ -1,13 +1,18 @@
+from conf.xtb_admin_account import xtb_admin_account_password, xtb_admin_account_id
 from dao.dao_strategy import strategy_dao
 from dao.dao_user import user_dao
 from manager.strategy_manager import StrategyManager, strategy_managers
-from trading_client.trading_client import trading_clients, TradingClient
+from trading_client.trading_client import trading_clients, TradingClient, admin_trading_client
 from utils.singleton import Singleton
 
 
 @Singleton
 class AppReloadService:
     async def reload_app_context(self):
+
+        # load ang log the admin trading client
+        await admin_trading_client.login( xtb_admin_account_id, xtb_admin_account_password )
+
         # load users
         users = user_dao.find()
 

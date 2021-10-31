@@ -1,3 +1,3 @@
-xtb_admin_account_id="11850860"
-xtb_admin_account_password="TestTest123123"
-xtb_admin_acount_mail="totoletrader3@yopmail.com"
+xtb_admin_account_id="12680770"
+xtb_admin_account_password="Tiabofidio123"
+xtb_admin_acount_mail="alexandre.close@gmail.com"

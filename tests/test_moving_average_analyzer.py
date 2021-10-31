@@ -7,19 +7,20 @@ import pandas as pd
 import pytest
 
 from analyzer.moving_average_analyzer import MovingAverageAnalyzer
-from conf.xtb_admin_account import xtb_account_password
+from conf.xtb_admin_account import xtb_admin_account_password
+from conf.xtb_admin_account import xtb_admin_account_id
 from manager.historic_manager import historic_manager
 from logging_conf import log
 from trading_client.trading_client import admin_trading_client
 import matplotlib.dates as mdates
 
-symbol = 'MSFT.US_9'
-movingAverageAnalyzer= MovingAverageAnalyzer( symbol, 'ema', 3, 20 ,1.0, 0.01)
+symbol = 'BITCOIN'
+movingAverageAnalyzer= MovingAverageAnalyzer( symbol, 'ema', 3, 20 ,3.0, 0.01)
 
 @pytest.fixture
 @pytest.mark.asyncio
 async def loginAndRegisterSymbol():
-    await admin_trading_client.login(xtb_account,  xtb_account_password, False)
+    await admin_trading_client.login(xtb_admin_account_id,  xtb_admin_account_password, False)
     await historic_manager.register_symbol( symbol)
 
 @pytest.mark.asyncio
@@ -38,7 +39,8 @@ async def test_compute_exponential_moving_average_last(loginAndRegisterSymbol):
 
 @pytest.mark.asyncio
 async def test_compute_trading_signal_now(loginAndRegisterSymbol):
-    df=await movingAverageAnalyzer.compute_trading_signal_now( )
+    signal =await movingAverageAnalyzer.compute_trading_signal_now( )
+    print( signal )
 
 @pytest.mark.asyncio
 async def test_compute_trading_signal(loginAndRegisterSymbol):
@@ -54,7 +56,7 @@ async def test_plot_trading_positions(loginAndRegisterSymbol):
     ax=ema.plot(y='Close', color='C1')
     trading_positions['color_trading']=np.where(trading_positions['cross_sign_sma_Close_lma_Close']>0, 'green', 'red')
     plt.scatter(trading_positions.index, trading_positions['sma_Close'],c=trading_positions['color_trading'])
-    # ax.set_xlim(pd.Timestamp('2016-01-01'), pd.Timestamp('2017-01-01'))
+    ax.set_xlim(pd.Timestamp('2017-01-01'), pd.Timestamp('2019-01-01'))
     plt.tight_layout()
     plt.show( )
 

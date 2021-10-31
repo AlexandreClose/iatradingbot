@@ -458,6 +458,6 @@ class TradingClient():
 		self.trades = {k: v for k, v in self.trades.items() if v['closed'] == False}
 		self.trades = {k: v for k, v in self.trades.items() if v['state'] != 'Deleted'}
 
-admin_trading_client = TradingClient()
 trading_clients={}
-trading_clients["admin"]=admin_trading_client
+trading_clients["admin"]=TradingClient()
+admin_trading_client = trading_clients["admin"]

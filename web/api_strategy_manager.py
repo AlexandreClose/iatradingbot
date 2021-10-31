@@ -19,7 +19,7 @@ async def register_strategy( ):
         if username:
             if not username in strategy_managers:
                 strategy_managers[username]=StrategyManager()
-            await strategy_managers[username].register_strategy( strategy_type, symbol, None, optimize=False )
+            await strategy_managers[username].register_strategy( strategy_type, symbol, None, username, optimize=False )
             # register
             resp = jsonify(success=True)
             resp.status_code = 200

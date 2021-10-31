@@ -1,4 +1,5 @@
 import enum
+import ssl
 
 import pymongo
 from logging_conf import log
@@ -23,7 +24,7 @@ class SORT_TYPE(enum.Enum):
 class MongoDbBaseClient():
 
     def __init__(self, db_name, col_name):
-        self.client=pymongo.MongoClient("mongodb+srv://dbuser:Azerty123@cluster0.3wb5a.mongodb.net/")
+        self.client=pymongo.MongoClient("mongodb+srv://dbuser:Tiabofidio123@cluster0.gniib.mongodb.net/")
         self.db=self.client[db_name]
         self.col=self.db[col_name]
 

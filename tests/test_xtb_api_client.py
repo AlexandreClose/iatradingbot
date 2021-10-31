@@ -26,3 +26,7 @@ async def test_get_all_symbol(login ):
     for symbol_data in response:
         assert 'symbol' in symbol_data.keys()
         print ( symbol_data['symbol'] )
+
+@pytest.mark.asyncio
+async def test_buy(login ):
+    response = await admin_trading_client.open_buy_trade( 'BITCOIN', 0.2, 0, 0 )

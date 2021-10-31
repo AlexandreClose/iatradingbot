@@ -49,7 +49,7 @@ class BaseStrategy:
 
     async def listen(self):
         await self.get_last_signal()
-        while True: # loop if no signal is received since 1 day
+        while True: # loop if no signal is received since 1 minute
 
             if self.check_last_signal_too_close():
                 log.info( "[STRATEGY] for symbol " + self.symbol + ". Last signal is too recent for computation")
@@ -90,7 +90,7 @@ class BaseStrategy:
                 await self.client.open_sell_trade( self.symbol, volume_to_buy, 0, 0)
 
     def check_last_signal_too_close(self):
-        raise NotImplementedError("Must override method check_last_signal_too_close")
+        return False
 
 
 
