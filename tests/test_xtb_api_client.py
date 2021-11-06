@@ -30,3 +30,7 @@ async def test_get_all_symbol(login ):
 @pytest.mark.asyncio
 async def test_buy(login ):
     response = await admin_trading_client.open_buy_trade( 'BITCOIN', 0.2, 0, 0 )
+
+@pytest.mark.asyncio
+async def test_close_all(login ):
+    response = await admin_trading_client.close_all_trades( )

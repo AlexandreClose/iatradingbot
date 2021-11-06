@@ -1,3 +1,8 @@
+asyncio
+flask_login
+pytest-asyncio
+quart_cors
+flask_patch
 pytest
 aiodns==2.0.0
 aiofiles==0.6.0

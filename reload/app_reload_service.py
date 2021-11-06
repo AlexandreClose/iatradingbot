@@ -34,7 +34,9 @@ class AppReloadService:
                 n_currency=strategy["n_currency"],
                 username=strategy["username"],
                 params_opti = strategy["params_opti"],
-                from_dao = True)
+                id=str(strategy["_id"]),
+                from_dao = True,
+                optimize=False)
 
 app_reload_service = AppReloadService.instance()
 app_reload_service : AppReloadService

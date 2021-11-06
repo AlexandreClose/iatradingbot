@@ -21,9 +21,9 @@ async def setup_session():
 async def test_get_last_signal( setup_session ):
 
     symbol = 'BITCOIN'
-    movingAverageStrategy= MovingAverageStrategy( symbol, 200, optimized=True)
-
     await admin_trading_client.login(xtb_admin_account_id, xtb_admin_account_password)
-    await  historic_manager.register_symbol( symbol)
+    movingAverageStrategy= MovingAverageStrategy( symbol, 200, optimize=True)
+    await movingAverageStrategy.setup()
     await asyncio.sleep( 3 )
     signal = await movingAverageStrategy.compute_signal()
+    print( signal )

@@ -10,15 +10,13 @@ from logging_conf import log
 @pytest.fixture
 @pytest.mark.asyncio
 async def setup_client( ):
-    with patch('quart.current_app'):
-        from web.create_app import create_app
-        app = create_app()
-        return app
+    from web.create_app import create_app
+    app = create_app()
+    return app
 
 @pytest.mark.asyncio
 async def test_login( setup_client ):
     app = setup_client
     async with app.test_client() as client:
         response = await client.get('/login/?username='+xtb_admin_account_id+'&password='+xtb_admin_account_password)
-        log.info( await response.get_data())
         assert response.status_code == 200

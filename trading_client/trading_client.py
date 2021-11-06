@@ -20,6 +20,9 @@ def extract_time(json):
 class TradingClient():
 
 	def __init__(self):
+		self.username=None
+		self.password=None
+		self.run_stream=None
 		self.stream_session_id=None
 		self.uri="wss://ws.xtb.com/demo"
 		self.uri_stream= "wss://ws.xtb.com/demoStream"
@@ -49,37 +52,48 @@ class TradingClient():
 		self.ws_stream_balances=await self._open_websocket_stream()
 
 
-	async def login(self, user, password, run_stream = True):
+	async def login(self, username, password, run_stream = True):
+		self.run_stream = run_stream
 		await self._init_websockets()
-		command = {"command" : "login","arguments": {"userId": user ,"password": password}}
-		response = await asyncio.ensure_future( self._send_and_receive(command, self.ws_login) )
-		self.stream_session_id = response['streamSessionId']
-		log.info( "[LOGIN] : Success. Session open on XTB with stream session id %s", self.stream_session_id )
-		await asyncio.ensure_future( self._fill_existing_trades())
+		command = {"command" : "login","arguments": {"userId": username ,"password": password}}
+		response = await asyncio.ensure_future( self._send_and_receive(command) )
+		if "status" in response and response["status"]:
+			self.stream_session_id = response['streamSessionId']
+			self.username = username
+			self.password = password
+			log.info("[LOGIN] : Success. Session open on XTB with stream session id %s", self.stream_session_id)
+			await asyncio.ensure_future(self._fill_existing_trades())
 
-		if run_stream:
-
-			loop = asyncio.get_event_loop()
-			# track all balances with stream
-			asyncio.run_coroutine_threadsafe( self._get_balances(), loop)
-			# regularily ping the server with stream
-			asyncio.run_coroutine_threadsafe( self._get_ping(), loop)
-			# track all trades changes with stream
-			asyncio.run_coroutine_threadsafe(self._track_trades_stream(), loop)
-			# track all profit of trades with stream
-			asyncio.run_coroutine_threadsafe(self._get_profits(), loop)
-			# track all keep_alive with stream
-			asyncio.run_coroutine_threadsafe( self._get_keep_alive(), loop)
-			# track all news with stream
-			asyncio.run_coroutine_threadsafe( self._get_news(), loop)
+			if run_stream:
+				loop = asyncio.get_event_loop()
+				# track all balances with stream
+				asyncio.run_coroutine_threadsafe(self._get_balances(), loop)
+				# regularily ping the server with stream
+				asyncio.run_coroutine_threadsafe(self._get_ping(), loop)
+				# track all trades changes with stream
+				asyncio.run_coroutine_threadsafe(self._track_trades_stream(), loop)
+				# track all profit of trades with stream
+				asyncio.run_coroutine_threadsafe(self._get_profits(), loop)
+				# track all keep_alive with stream
+				asyncio.run_coroutine_threadsafe(self._get_keep_alive(), loop)
+				# track all news with stream
+				asyncio.run_coroutine_threadsafe(self._get_news(), loop)
 
 		return response
+
+	async def ping(self ):
+		await self._init_websockets()
+		command = {"command" : "ping"}
+		response = await asyncio.ensure_future( self._send_and_receive(command) )
+		if "status" in response and response["status"]:
+			return True
+		return False
 
 	async def logout(self):
 		command = {
 			"command": "logout"
 		}
-		response = await asyncio.ensure_future( self._send_and_receive(command, self.ws_login) )
+		response = await asyncio.ensure_future( self._send_and_receive(command) )
 
 
 	### BUY
@@ -212,7 +226,7 @@ class TradingClient():
 		command = {
 			"command": "getMarginLevel"
 		}
-		response = await self._send_and_receive(command, self.ws_login)
+		response = await self._send_and_receive(command)
 		response=response['returnData']
 		if "balance" in response:
 			self.balances.append( response )
@@ -225,18 +239,18 @@ class TradingClient():
 				"symbol": symbol
 			}
 		}
-		response = await self._send_and_receive(command, self.ws_login)
+		response = await self._send_and_receive(command)
 		log.debug( response['returnData'] )
 		return response['returnData']
 
 	async def get_all_symbols(self):
 		command = {"command": "getAllSymbols"}
-		response = await self._send_and_receive(command, self.ws_login)
+		response = await self._send_and_receive(command)
 		return response['returnData']
 
 	async def get_calendar(self):
 		command = {"command": "getCalendar"}
-		response = await self._send_and_receive(command, self.ws_login)
+		response = await self._send_and_receive(command)
 		return response['returnData']
 
 	async def follow_tick_prices( self, symbols ):
@@ -309,7 +323,7 @@ class TradingClient():
 				"openedOnly": False
 			}
 		}
-		existing_trades = await self._send_and_receive(command, websocket=self.ws_login)
+		existing_trades = await self._send_and_receive(command)
 		for trade in existing_trades['returnData']:
 			self.trades[trade['order2']]=trade
 		log.debug( "[TRADES] existing : %s", self.trades)
@@ -365,7 +379,7 @@ class TradingClient():
 				"tradeTransInfo": infos
 			}
 		}
-		response = await self._send_and_receive(command, self.ws_login)
+		response = await self._send_and_receive(command)
 		# intialize the transaction in the trades dict;
 		if 'returnData' in response and 'order' in response['returnData'] and 'errorCode' not in response['returnData']:
 			self.trades[response['returnData']['order']]={
@@ -398,7 +412,7 @@ class TradingClient():
 
 	async def get_chart_range_request(self,timestart,timeend,period,symbol):
 		command = {"command": "getChartRangeRequest","arguments": {"info": {"end": timeend*1000,"period": period.value,"start": timestart*1000,"symbol": symbol,"ticks": 0}}}
-		response = await self._send_and_receive(command, self.ws_login)
+		response = await self._send_and_receive(command)
 		response = response['returnData']['rateInfos']
 		dictHistory = {}
 		for data_history in response:
@@ -413,12 +427,18 @@ class TradingClient():
 
 	###envoie et recvoie les requêtes au serveur xtb
 		# retourne la websocket ouverte + la réponse du serveur
-	async def _send_and_receive(self, json_command, websocket):
+	async def _send_and_receive(self, json_command ):
 		command = json.dumps(json_command)
 		log.info( "[COMMAND] : " + command )
-		await websocket.send(command)
-		response = await websocket.recv()
-		return json.loads( response )
+		await self.ws_login.send(command)
+		try:
+			response = await self.ws_login.recv()
+			return json.loads(response)
+		except Exception as er:
+			log.error( '[LOGIN] Error : ' + er)
+			await self._reload_websocket()
+			self._send_and_receive( json_command)
+
 
 	async def _send_and_receive_stream(self, json_command, label, websocket, resp_array, timestamp = False, timestamp_as_key = False ):
 		command = json.dumps(json_command)
@@ -437,6 +457,11 @@ class TradingClient():
 					resp_array.append( response )
 			except Exception as er:
 				log.error( er )
+				# try to reconnect
+				await self._reload_websocket_stream( )
+				return
+
+
 
 	async def _send_and_receive_ticks_stream(self, json_command, label, websocket, resp_array ):
 		command = json.dumps(json_command)
@@ -457,6 +482,15 @@ class TradingClient():
 	def _remove_closed_trades( self ):
 		self.trades = {k: v for k, v in self.trades.items() if v['closed'] == False}
 		self.trades = {k: v for k, v in self.trades.items() if v['state'] != 'Deleted'}
+
+	async def _reload_websocket( self ):
+		await self.login( self.username, self.password, self.run_stream)
+
+	async def _reload_websocket_stream( self ):
+		await self.login( self.username, self.password, self.run_stream)
+
+
+
 
 trading_clients={}
 trading_clients["admin"]=TradingClient()

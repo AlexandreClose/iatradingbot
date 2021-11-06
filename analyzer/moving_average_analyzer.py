@@ -77,9 +77,7 @@ class MovingAverageAnalyzer:
         return dataframe
 
     async def compute_trading_signal_now(self):
-        # trading_positions,ldf = await self.compute_trading_signals( )
-        ldf,trading_positions = await self.compute_trading_signals( )
-        print(trading_positions)
+        trading_positions,ldf  = await self.compute_trading_signals( )
         if not ldf.empty:
             today = date.today()
             d1 = today.strftime("%Y-%m-%d")
@@ -238,7 +236,7 @@ class MovingAverageAnalyzer:
                 "trading_signals_number":trading_signals_number_opti
             }
         else:
-            log.info( "Optimized params given for symbol %s. No need to process optimization", self.symbol)
+            log.info( "optimize params given for symbol %s. No need to process optimization", self.symbol)
             log.info( "[EMA] Optimize for %s", self.symbol )
             log.info( "[EMA] Small windows size : %s", params_opti["sws"] )
             log.info( "[EMA] Long windows size : %s", params_opti["lws"] )

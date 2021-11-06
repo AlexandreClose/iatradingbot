@@ -1,4 +1,7 @@
+import logging
+
 import flask_login
+from logging_conf import log
 from flask_login import login_user
 from quart import Blueprint, jsonify, request, session
 
@@ -17,30 +20,53 @@ async def login( ):
         user = User()
         user.id = username
 
-        user_registered = None
-        if len(user_manager.get_user_by_username( username )) > 0:
-            user_registered = user_manager.get_user_by_username( username )[0]
-        if not user_registered:
-            # try login with trading client
-            trading_client = TradingClient()
-            login_response = await trading_client.login( username, password )
-            if login_response['status'] == True:
-                user_manager.register_user( {
-                    "username":username,
-                    "password":password
-                })
-                trading_clients[username]=trading_client
+        if username in trading_clients:
+            client = trading_clients[username]
+            # check password
+            if password == client.password:
+                 # check login
+                isLoggedIn = await client.ping()
+                if not isLoggedIn:
+                    response = await client.login( username, password, True )
+                    if not response["status"]:
+                        raise Exception('Unable to process log in')
             else:
-                return
+                isLoggedIn = await client.ping()
+                if isLoggedIn:
+                    raise Exception('Invalid password')
+                else:
+                    client = TradingClient()
+                    response = await client.login(username, password, True)
+                    if response["status"]:
+                        #Register the user with new pass
+                        trading_clients[username]=client
+                        user_manager.deleteOne( {"username" : username} )
+                        user_manager.register_user({
+                            "username": username,
+                            "password": password
+                        })
         else:
-            if not username in trading_clients:
-                trading_client = TradingClient()
-                login_response = await trading_client.login( username, password )
-                if login_response['status'] == True:
-                    trading_clients[username]=trading_client
-        login_user(user)
-        return 'test'
+            client = TradingClient()
+            response = await client.login(username, password, True)
+            if response["status"]:
+                # Register the user with new pass
+                trading_clients[username] = client
+                try:
+                    user_manager.register_user({
+                        "username": username,
+                        "password": password
+                    })
+                except:
+                    log.info( "User %s already exists in database", username)
+            else:
+                raise Exception('Unable to process log in')
 
+        #log flask user
+        login_user(user)
+        resp = jsonify(success=True, message="Login successful")
+        resp.status_code = 200
+        return resp
     except Exception as er:
         resp = jsonify(success=False,message=str(er))
+        resp.status_code = 403
         return resp

@@ -16,6 +16,9 @@ class UserManager:
     def register_user(self, user ):
         return self.userDao.insert( user )
 
+    def deleteOne(self, conditions):
+        return self.userDao.deleteOne( conditions)
+
     def get_user_by_username(self, username):
         return self.userDao.find( {"username": username})
 

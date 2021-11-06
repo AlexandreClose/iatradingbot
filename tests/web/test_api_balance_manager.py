@@ -12,11 +12,10 @@ from manager.strategy_manager import strategy_managers
 @pytest.fixture
 @pytest.mark.asyncio
 async def setup_client( ):
-    with patch('quart.current_app'):
-        from web.create_app import create_app
-        app = create_app()
-        quart.current_app = app
-        return app
+    from web.create_app import create_app
+    app = create_app()
+    quart.current_app = app
+    return app
 
 @pytest.mark.asyncio
 async def test_balance_manager( setup_client ):

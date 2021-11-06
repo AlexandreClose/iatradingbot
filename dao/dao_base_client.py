@@ -35,6 +35,9 @@ class MongoDbBaseClient():
     def deleteAll(self ):
         self.col.remove()
 
+    def deleteOne(self, conditions ):
+        self.col.delete_one( conditions )
+
     def insert_multiple(self, bulk_data):
         if bulk_data:
             try:

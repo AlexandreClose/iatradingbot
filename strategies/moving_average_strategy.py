@@ -1,9 +1,11 @@
 import asyncio
 import datetime
 import enum
+import json
 
 from analyzer.moving_average_analyzer import MovingAverageAnalyzer
 from strategies.base_strategy import BaseStrategy
+from manager.manager_enums import STRATEGY_TYPE
 from manager.tick_manager import TickManager
 from trading_client.trading_client import TradingClient
 
@@ -14,10 +16,17 @@ class MODE_SELL(enum.Enum):
 
 class MovingAverageStrategy(BaseStrategy):
 
-    def __init__(self, symbol, n_currencies, optimized=False):
-        super(MovingAverageStrategy, self).__init__( symbol, n_currencies)
+    def __init__(self, symbol, n_currencies, username, optimize=False, params_opti=None, id = None):
+        super(MovingAverageStrategy, self).__init__( symbol, n_currencies, id = id)
+        self.params_opti = params_opti
         self.movingAverageAnalyzer=MovingAverageAnalyzer( self.symbol, 'ema', 1, 118,1, time_type = "daily")
-        self.optimized = optimized
+        self.optimize = optimize
+        self.strategy_type = STRATEGY_TYPE.MOVING_AVERAGE.value
+
+    async def setup(self):
+        await super().setup()
+        if self.optimize:
+            await self.movingAverageAnalyzer.optimize(self.params_opti)
 
 
     async def compute_signal(self ):

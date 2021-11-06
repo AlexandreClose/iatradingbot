@@ -8,6 +8,8 @@ from asyncio import CancelledError
 from quart import session
 
 from analyzer.moving_average_analyzer import MovingAverageAnalyzer
+from manager.user_manager import user_manager
+from manager.symbol_manager import symbol_manager
 from manager.tick_manager import TickManager
 from trading_client.trading_client import TradingClient, admin_trading_client, MODES, trading_clients
 from logging_conf import log
@@ -20,8 +22,10 @@ class MODE_SELL(enum.Enum):
 
 class BaseStrategy:
 
-    def __init__(self, symbol, n_currencies, username='admin' ):
+    def __init__(self, symbol, n_currencies, username='admin', id = None ):
+        self.id= id
         self.client : TradingClient = trading_clients[username]
+        self.username = username
         self.symbol=symbol
         self.signals_dict={}
         self.n_currencies = n_currencies; # nb currencies put on this strategy
@@ -30,6 +34,24 @@ class BaseStrategy:
         self.last_date_signal = None
         self.last_type_signal = None #need to fetch last signal type based on current trade
         self.mode_sell = MODE_SELL.ONLY_CLOSE
+        self.strategy_type = None
+
+    async def setup(self):
+        if self.username not in trading_clients:
+            user = user_manager.get_user_by_username( self.username )
+            client = TradingClient()
+            trading_clients[self.username]=client
+            await trading_clients[self.username].login(user.username, user.password )
+        await symbol_manager.register_symbol(self.symbol)
+        await asyncio.sleep(2)
+
+    def reprJSON(self):
+        return dict(
+            id=self.id,
+            symbol=self.symbol,
+            n_currencies=self.n_currencies,
+            strategy_type= self.strategy_type
+            )
 
     async def get_last_signal(self):
         dict_trades =  await self.client.get_all_updated_trades( symbol=self.symbol)
@@ -61,15 +83,10 @@ class BaseStrategy:
                         log.info( "[STRATEGY] for symbol " + self.symbol + ". NO SIGNAL RECEIVED" )
                     else:
                         log.info( "[STRATEGY] for symbol " + self.symbol + ". SIGNAL : " + str(signal) )
-
-
-                    if signal:
-                            log.info( "[STRATEGY] for symbol " + self.symbol + ". SIGNAL :" )
-                            print( signal )
-                            self.signals_dict[signal['Date']]=signal
-                            self.last_date_signal = signal['Date']
-                            if (self.last_type_signal != None and signal['type'] != self.last_type_signal) or (self.last_type_signal == None and signal['type']!= 'SELL'):
-                                await self.react( signal )
+                        self.signals_dict[signal['Date']]=signal
+                        self.last_date_signal = signal['Date']
+                        if (self.last_type_signal != None and signal['type'] != self.last_type_signal) or (self.last_type_signal == None and signal['type']!= 'SELL'):
+                            await self.react( signal )
                     await asyncio.sleep( 60 ) # wait 1 minute for fetching new signal
                 except KeyError as e:
                     traceback.print_exc()
@@ -92,6 +109,10 @@ class BaseStrategy:
     def check_last_signal_too_close(self):
         return False
 
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
 
+    def __getitem__(self, key):
+        return getattr(self, key)
 
 
