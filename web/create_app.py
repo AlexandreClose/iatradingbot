@@ -1,4 +1,5 @@
 import flask_login
+from flask_socketio import SocketIO
 from quart import Quart
 from quart_cors import cors
 

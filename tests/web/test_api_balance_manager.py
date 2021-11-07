@@ -27,3 +27,14 @@ async def test_balance_manager( setup_client ):
         response = await client.get('/balance_manager/')
         assert response.status_code == 200
 
+@pytest.mark.asyncio
+async def test_ws_balance_manager( setup_client ):
+    app = setup_client
+    async with app.test_client() as client:
+        response = await client.get('/login/?username='+xtb_admin_account_id+'&password='+xtb_admin_account_password)
+        assert response.status_code == 200
+        async with client.websocket('/ws_balance_manager/') as test_websocket:
+            await asyncio.sleep( 10 )
+            result = await test_websocket.receive()
+            print( result )
+

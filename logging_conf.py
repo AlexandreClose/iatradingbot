@@ -15,15 +15,15 @@ def configure_logger(name, log_path):
                 'formatter': 'default',
                 'stream': 'ext://sys.stdout'
             },
-            'splunk': {
-                'level': 'INFO',
-                'class': 'splunk_handler.SplunkHandler',
-                'host': 'splunk.blackcrow.int',
-                'port': '0011',
-                'token': 'key',
-                'index': 'trading',
-                'formatter': 'default'            },
-            'file': {
+            # 'splunk': {
+            #     'level': 'INFO',
+            #     'class': 'splunk_handler.SplunkHandler',
+            #     'host': 'splunk.blackcrow.int',
+            #     'port': '0011',
+            #     'token': 'key',
+            #     'index': 'trading',
+            #     'formatter': 'default'            },
+             'file': {
                 'level': 'DEBUG',
                 'class': 'logging.handlers.RotatingFileHandler',
                 'formatter': 'default',
@@ -35,7 +35,7 @@ def configure_logger(name, log_path):
         'loggers': {
             'default': {
                 'level': 'DEBUG',
-                'handlers': ['console','splunk']
+                'handlers': ['console']
             }
         },
         'disable_existing_loggers': False
