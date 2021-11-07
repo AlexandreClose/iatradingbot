@@ -17,13 +17,12 @@ def configure_logger(name, log_path):
             },
             'splunk': {
                 'level': 'INFO',
-                'class': 'splunk_logging_handler.SplunkLoggingHandler',
-                'url': 'splunk.blackcrow.int',
-                'splunk_key': 'key',
-                'splunk_index': 'trading',
-                'formatter': 'simple',
-                'filters': ['filterForSplunk']
-            },
+                'class': 'splunk_handler.SplunkHandler',
+                'host': 'splunk.blackcrow.int',
+                'port': '0011',
+                'token': 'key',
+                'index': 'trading',
+                'formatter': 'default'            },
             'file': {
                 'level': 'DEBUG',
                 'class': 'logging.handlers.RotatingFileHandler',
